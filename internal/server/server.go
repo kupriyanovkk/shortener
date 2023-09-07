@@ -54,12 +54,12 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.String()
-	origUrl, err := store.GetValue(id[1:])
+	origURL, err := store.GetValue(id[1:])
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	http.Redirect(w, r, origUrl, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, origURL, http.StatusTemporaryRedirect)
 }
