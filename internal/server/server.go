@@ -10,20 +10,18 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/storage"
 )
 
-var store = storage.NewStorage()
-
-func HandleFunc(w http.ResponseWriter, r *http.Request) {
+func HandleFunc(w http.ResponseWriter, r *http.Request, s storage.Storage) {
 	switch r.Method {
 	case http.MethodPost:
-		postHandler(w, r)
+		PostHandler(w, r, s)
 	case http.MethodGet:
-		getHandler(w, r)
+		GetHandler(w, r, s)
 	default:
 		http.Error(w, "Only POST or GET requests are allowed!", http.StatusBadRequest)
 	}
 }
 
-func postHandler(w http.ResponseWriter, r *http.Request) {
+func PostHandler(w http.ResponseWriter, r *http.Request, s storage.Storage) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -34,16 +32,15 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	bodyString := string(body)
-	fmt.Println("Request Body:", bodyString)
+	parsedURL, err := url.ParseRequestURI(bodyString)
 
-	parsedURL, err := url.Parse(bodyString)
 	if err != nil {
 		http.Error(w, "Error parsing URL", http.StatusBadRequest)
 		return
 	}
 
-	id := generator.GetRandomStr(10)
-	store.AddValue(id, parsedURL.String())
+	id, _ := generator.GetRandomStr(10)
+	s.AddValue(id, parsedURL.String())
 	result := fmt.Sprintf("http://localhost:8080/%s", id)
 
 	w.WriteHeader(http.StatusCreated)
@@ -52,9 +49,9 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
-func getHandler(w http.ResponseWriter, r *http.Request) {
+func GetHandler(w http.ResponseWriter, r *http.Request, s storage.Storage) {
 	id := r.URL.String()
-	origURL, err := store.GetValue(id[1:])
+	origURL, err := s.GetValue(id[1:])
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
