@@ -20,7 +20,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { HandleFunc(w, r, s) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostHandler(w, r, s) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -37,7 +37,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { HandleFunc(w, r, s) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostHandler(w, r, s) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -56,7 +56,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { HandleFunc(w, r, s) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetHandler(w, r, s) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -72,27 +72,11 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { HandleFunc(w, r, s) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetHandler(w, r, s) })
 
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "value doesn't exist by key nonexistent")
-	})
-
-	t.Run("Invalid Method", func(t *testing.T) {
-		s := storage.NewStorage()
-		req, err := http.NewRequest(http.MethodPut, "/", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { HandleFunc(w, r, s) })
-
-		handler.ServeHTTP(rr, req)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "Only POST or GET requests are allowed!")
 	})
 }

@@ -10,17 +10,6 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/storage"
 )
 
-func HandleFunc(w http.ResponseWriter, r *http.Request, s storage.Storage) {
-	switch r.Method {
-	case http.MethodPost:
-		PostHandler(w, r, s)
-	case http.MethodGet:
-		GetHandler(w, r, s)
-	default:
-		http.Error(w, "Only POST or GET requests are allowed!", http.StatusBadRequest)
-	}
-}
-
 func PostHandler(w http.ResponseWriter, r *http.Request, s storage.Storage) {
 	body, err := io.ReadAll(r.Body)
 
