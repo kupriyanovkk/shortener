@@ -11,6 +11,8 @@ import (
 )
 
 func TestHandleFunc(t *testing.T) {
+	var flag string = "http://localhost:8080/"
+
 	t.Run("Valid POST Request", func(t *testing.T) {
 		body := []byte("https://example.com")
 		s := storage.NewStorage()
@@ -20,7 +22,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostHandler(w, r, s) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostHandler(w, r, s, flag) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -37,7 +39,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostHandler(w, r, s) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostHandler(w, r, s, flag) })
 
 		handler.ServeHTTP(rr, req)
 

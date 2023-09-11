@@ -10,7 +10,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/storage"
 )
 
-func PostHandler(w http.ResponseWriter, r *http.Request, s storage.Storage) {
+func PostHandler(w http.ResponseWriter, r *http.Request, s storage.Storage, baseURL string) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -30,7 +30,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request, s storage.Storage) {
 
 	id, _ := generator.GetRandomStr(10)
 	s.AddValue(id, parsedURL.String())
-	result := fmt.Sprintf("http://localhost:8080/%s", id)
+	result := fmt.Sprintf("%s/%s", baseURL, id)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "text/plain")
