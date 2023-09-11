@@ -11,7 +11,7 @@ import (
 )
 
 func TestHandleFunc(t *testing.T) {
-	var flag string = "http://localhost:8080/"
+	flag := "http://localhost:8080/"
 
 	t.Run("Valid POST Request", func(t *testing.T) {
 		body := []byte("https://example.com")
