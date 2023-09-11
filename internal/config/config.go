@@ -13,7 +13,7 @@ func ParseFlags() ConfigFlags {
 	var a string
 	var b string
 
-	flag.StringVar(&a, "a", "http://localhost:8080", "address and port to run server")
+	flag.StringVar(&a, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&b, "b", "http://localhost:8080", "the address of the resulting shortened URL")
 	flag.Parse()
 
