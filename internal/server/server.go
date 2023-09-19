@@ -10,7 +10,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/storage"
 )
 
-func PostHandler(w http.ResponseWriter, r *http.Request, s storage.Storage, baseURL string) {
+func PostHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel, baseURL string) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request, s storage.Storage, base
 	w.Write([]byte(result))
 }
 
-func GetHandler(w http.ResponseWriter, r *http.Request, s storage.Storage) {
+func GetHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel) {
 	id := r.URL.String()
 	origURL, err := s.GetValue(id[1:])
 
