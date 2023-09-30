@@ -2,16 +2,18 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleFunc(t *testing.T) {
-	flag := "http://localhost:8080/"
+	defaultURL := "http://localhost:8080/"
 
 	t.Run("Valid POST Request", func(t *testing.T) {
 		body := []byte("https://example.com")
@@ -22,7 +24,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostHandler(w, r, s, flag) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRootHandler(w, r, s, defaultURL) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -39,7 +41,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostHandler(w, r, s, flag) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRootHandler(w, r, s, defaultURL) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -80,5 +82,28 @@ func TestHandleFunc(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "value doesn't exist by key nonexistent")
+	})
+
+	t.Run("Valid POST Request to API", func(t *testing.T) {
+		s := storage.NewStorage()
+		body := []byte(`{"url":"http://example.com/"}`)
+		req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostApiHandler(w, r, s, defaultURL) })
+
+		handler.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Contains(t, rr.Header().Get("Location"), "http://localhost:8080/")
+
+		var resp models.Response
+		if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+			t.Errorf("Error decoding response JSON: %v", err)
+		}
 	})
 }
