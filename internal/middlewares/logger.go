@@ -1,4 +1,4 @@
-package logger
+package middlewares
 
 import (
 	"net/http"
@@ -30,14 +30,14 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-func WithLogging(h http.Handler) http.Handler {
+func Logger(h http.Handler) http.Handler {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		panic("cannot initialize zap")
 	}
 	defer logger.Sync()
 
-	logFn := func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
 		responseData := &responseData{
@@ -60,6 +60,5 @@ func WithLogging(h http.Handler) http.Handler {
 			"duration", duration,
 			"size", responseData.size,
 		)
-	}
-	return http.HandlerFunc(logFn)
+	})
 }

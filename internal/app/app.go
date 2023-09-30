@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/kupriyanovkk/shortener/internal/config"
-	"github.com/kupriyanovkk/shortener/internal/logger"
+	"github.com/kupriyanovkk/shortener/internal/middlewares"
 	"github.com/kupriyanovkk/shortener/internal/server"
 	"github.com/kupriyanovkk/shortener/internal/storage"
 )
@@ -16,7 +16,11 @@ func Start() {
 	r := chi.NewRouter()
 	f := config.ParseFlags()
 
-	r.Use(logger.WithLogging)
+	r.Use(
+		middlewares.Logger,
+		middlewares.Gzip,
+		middlewares.Decompress,
+	)
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		server.GetHandler(w, r, s)
 	})

@@ -57,7 +57,7 @@ func PostAPIHandler(w http.ResponseWriter, r *http.Request, s storage.StorageMod
 	dec := json.NewDecoder(r.Body)
 
 	if err := dec.Decode(&req); err != nil {
-		http.Error(w, "Error decoding request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
