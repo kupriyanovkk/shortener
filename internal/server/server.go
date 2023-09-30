@@ -52,7 +52,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel) 
 	http.Redirect(w, r, origURL, http.StatusTemporaryRedirect)
 }
 
-func PostApiHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel, baseURL string) {
+func PostAPIHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel, baseURL string) {
 	var req models.Request
 	dec := json.NewDecoder(r.Body)
 

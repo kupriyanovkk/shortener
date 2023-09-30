@@ -94,7 +94,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostApiHandler(w, r, s, defaultURL) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostAPIHandler(w, r, s, defaultURL) })
 
 		handler.ServeHTTP(rr, req)
 

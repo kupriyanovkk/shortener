@@ -24,7 +24,7 @@ func Start() {
 		server.PostRootHandler(w, r, s, f.B)
 	})
 	r.Post("/api/shorten", func(w http.ResponseWriter, r *http.Request) {
-		server.PostApiHandler(w, r, s, f.B)
+		server.PostAPIHandler(w, r, s, f.B)
 	})
 
 	err := http.ListenAndServe(f.A, r)
