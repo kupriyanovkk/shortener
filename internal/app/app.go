@@ -11,10 +11,9 @@ import (
 )
 
 func Start() {
-	var s = storage.NewStorage()
-
 	r := chi.NewRouter()
 	f := config.ParseFlags()
+	s := storage.NewStorage(f.F)
 
 	r.Use(
 		middlewares.Logger,

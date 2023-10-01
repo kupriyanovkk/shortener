@@ -14,10 +14,11 @@ import (
 
 func TestHandleFunc(t *testing.T) {
 	defaultURL := "http://localhost:8080/"
+	storageFile := "/tmp/short-url-db.json"
 
 	t.Run("Valid POST Request", func(t *testing.T) {
 		body := []byte("https://example.com")
-		s := storage.NewStorage()
+		s := storage.NewStorage(storageFile)
 		req, err := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 		if err != nil {
 			t.Fatal(err)
@@ -34,7 +35,7 @@ func TestHandleFunc(t *testing.T) {
 
 	t.Run("Invalid POST Request", func(t *testing.T) {
 		body := []byte("invalid-url")
-		s := storage.NewStorage()
+		s := storage.NewStorage(storageFile)
 		req, err := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 		if err != nil {
 			t.Fatal(err)
@@ -51,7 +52,7 @@ func TestHandleFunc(t *testing.T) {
 
 	t.Run("Valid GET Request", func(t *testing.T) {
 		id := "abc123"
-		s := storage.NewStorage()
+		s := storage.NewStorage(storageFile)
 		s.AddValue(id, "http://example.com")
 
 		req, err := http.NewRequest(http.MethodGet, "/"+id, nil)
@@ -69,7 +70,7 @@ func TestHandleFunc(t *testing.T) {
 	})
 
 	t.Run("Invalid GET Request (Not Found)", func(t *testing.T) {
-		s := storage.NewStorage()
+		s := storage.NewStorage(storageFile)
 		req, err := http.NewRequest(http.MethodGet, "/nonexistent", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -85,7 +86,7 @@ func TestHandleFunc(t *testing.T) {
 	})
 
 	t.Run("Valid POST Request to API", func(t *testing.T) {
-		s := storage.NewStorage()
+		s := storage.NewStorage(storageFile)
 		body := []byte(`{"url":"http://example.com/"}`)
 		req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
 
