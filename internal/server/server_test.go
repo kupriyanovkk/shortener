@@ -10,6 +10,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandleFunc(t *testing.T) {
@@ -106,5 +107,6 @@ func TestHandleFunc(t *testing.T) {
 		if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 			t.Errorf("Error decoding response JSON: %v", err)
 		}
+		require.NotEmpty(t, resp, resp.Result)
 	})
 }

@@ -16,7 +16,7 @@ func PostRootHandler(w http.ResponseWriter, r *http.Request, s storage.StorageMo
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusInternalServerError)
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
 		return
 	}
 

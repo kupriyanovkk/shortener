@@ -18,7 +18,6 @@ func Start() {
 	r.Use(
 		middlewares.Logger,
 		middlewares.Gzip,
-		middlewares.Decompress,
 	)
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		server.GetHandler(w, r, s)
