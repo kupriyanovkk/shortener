@@ -89,9 +89,11 @@ func PostAPIHandler(w http.ResponseWriter, r *http.Request, s storage.StorageMod
 func GetPingHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	err := db.Ping()
 	if err != nil {
+		fmt.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	
+
+	fmt.Println("OK")
 	w.WriteHeader(http.StatusOK)
 }

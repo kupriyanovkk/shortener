@@ -17,8 +17,7 @@ func Start() {
 	f := config.ParseFlags()
 	s := storage.NewStorage(f.F)
 
-	connStr := "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
-	db, dbErr := sql.Open("postgres", connStr)
+	db, dbErr := sql.Open("postgres", f.D)
 	if dbErr != nil {
 		panic(dbErr)
 	}
