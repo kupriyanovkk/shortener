@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -83,4 +84,14 @@ func PostAPIHandler(w http.ResponseWriter, r *http.Request, s storage.StorageMod
 	}
 
 	w.Header().Set("Location", result)
+}
+
+func GetPingHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	err := db.Ping()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	w.WriteHeader(http.StatusOK)
 }
