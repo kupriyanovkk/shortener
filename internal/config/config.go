@@ -3,6 +3,8 @@ package config
 import (
 	"flag"
 	"os"
+
+	"github.com/kupriyanovkk/shortener/internal/storage"
 )
 
 type ConfigFlags struct {
@@ -21,7 +23,7 @@ func ParseFlags() ConfigFlags {
 	flag.StringVar(&a, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&b, "b", "http://localhost:8080", "the address of the resulting shortened URL")
 	flag.StringVar(&f, "f", "/tmp/short-url-db.json", "the full name of the file where the data is saved in JSON")
-	flag.StringVar(&d, "d", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable", "the address for DB connection")
+	flag.StringVar(&d, "d", "", "the address for DB connection")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
@@ -43,4 +45,9 @@ func ParseFlags() ConfigFlags {
 		F: f,
 		D: d,
 	}
+}
+
+type Env struct {
+	Flags   ConfigFlags
+	Storage storage.StorageModel
 }

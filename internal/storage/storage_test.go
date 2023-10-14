@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -10,6 +11,8 @@ import (
 )
 
 func TestStorage(t *testing.T) {
+	storageFile := "/tmp/short-url-db.json"
+
 	testCases := []struct {
 		description    string
 		initialStorage map[string]string
@@ -46,13 +49,14 @@ func TestStorage(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.description, func(t *testing.T) {
-			storage := Storage{values: testCase.initialStorage}
+			storage := NewStorage(storageFile, "")
+			storage.values = testCase.initialStorage
 
 			if testCase.keyToAdd != "" {
-				storage.AddValue(testCase.keyToAdd, testCase.valueToAdd)
+				storage.AddValue(context.Background(), testCase.keyToAdd, testCase.valueToAdd)
 			}
 
-			value, err := storage.GetValue(testCase.keyToGet)
+			value, err := storage.GetValue(context.Background(), testCase.keyToGet)
 
 			assert.Equal(t, testCase.expectedValue, value, "Value mismatch")
 			assert.Equal(t, testCase.expectedError, err, "Error mismatch")

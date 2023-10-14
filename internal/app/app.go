@@ -1,7 +1,6 @@
 package app
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -9,35 +8,29 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/middlewares"
 	"github.com/kupriyanovkk/shortener/internal/server"
 	"github.com/kupriyanovkk/shortener/internal/storage"
-	_ "github.com/lib/pq"
 )
 
 func Start() {
 	r := chi.NewRouter()
 	f := config.ParseFlags()
-	s := storage.NewStorage(f.F)
-
-	db, dbErr := sql.Open("postgres", f.D)
-	if dbErr != nil {
-		panic(dbErr)
-	}
-	defer db.Close()
+	s := storage.NewStorage(f.F, f.D)
+	env := &config.Env{Flags: f, Storage: s}
 
 	r.Use(
 		middlewares.Logger,
 		middlewares.Gzip,
 	)
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		server.GetHandler(w, r, s)
+		server.GetHandler(w, r, env)
 	})
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		server.PostRootHandler(w, r, s, f.B)
+		server.PostRootHandler(w, r, env)
 	})
 	r.Post("/api/shorten", func(w http.ResponseWriter, r *http.Request) {
-		server.PostAPIHandler(w, r, s, f.B)
+		server.PostAPIHandler(w, r, env)
 	})
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		server.GetPingHandler(w, r, db)
+		server.GetPingHandler(w, r, env)
 	})
 
 	err := http.ListenAndServe(f.A, r)

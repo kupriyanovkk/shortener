@@ -2,11 +2,13 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -16,34 +18,43 @@ import (
 func TestHandleFunc(t *testing.T) {
 	defaultURL := "http://localhost:8080/"
 	storageFile := "/tmp/short-url-db.json"
+	dbDSN := ""
+
+	f := config.ConfigFlags{
+		B: defaultURL,
+		F: storageFile,
+		D: dbDSN,
+	}
 
 	t.Run("Valid POST Request", func(t *testing.T) {
 		body := []byte("https://example.com")
-		s := storage.NewStorage(storageFile)
+		s := storage.NewStorage(storageFile, dbDSN)
+		env := &config.Env{Flags: f, Storage: s}
 		req, err := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRootHandler(w, r, s, defaultURL) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRootHandler(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
-		assert.Contains(t, rr.Header().Get("Location"), "http://localhost:8080/")
+		assert.Contains(t, rr.Header().Get("Location"), defaultURL)
 	})
 
 	t.Run("Invalid POST Request", func(t *testing.T) {
 		body := []byte("invalid-url")
-		s := storage.NewStorage(storageFile)
+		s := storage.NewStorage(storageFile, dbDSN)
+		env := &config.Env{Flags: f, Storage: s}
 		req, err := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRootHandler(w, r, s, defaultURL) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRootHandler(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -53,8 +64,9 @@ func TestHandleFunc(t *testing.T) {
 
 	t.Run("Valid GET Request", func(t *testing.T) {
 		id := "abc123"
-		s := storage.NewStorage(storageFile)
-		s.AddValue(id, "http://example.com")
+		s := storage.NewStorage(storageFile, dbDSN)
+		env := &config.Env{Flags: f, Storage: s}
+		s.AddValue(context.Background(), id, "http://example.com")
 
 		req, err := http.NewRequest(http.MethodGet, "/"+id, nil)
 		if err != nil {
@@ -62,7 +74,7 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetHandler(w, r, s) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetHandler(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -71,14 +83,15 @@ func TestHandleFunc(t *testing.T) {
 	})
 
 	t.Run("Invalid GET Request (Not Found)", func(t *testing.T) {
-		s := storage.NewStorage(storageFile)
+		s := storage.NewStorage(storageFile, dbDSN)
+		env := &config.Env{Flags: f, Storage: s}
 		req, err := http.NewRequest(http.MethodGet, "/nonexistent", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetHandler(w, r, s) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetHandler(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -87,7 +100,8 @@ func TestHandleFunc(t *testing.T) {
 	})
 
 	t.Run("Valid POST Request to API", func(t *testing.T) {
-		s := storage.NewStorage(storageFile)
+		s := storage.NewStorage(storageFile, dbDSN)
+		env := &config.Env{Flags: f, Storage: s}
 		body := []byte(`{"url":"http://example.com/"}`)
 		req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
 
@@ -96,12 +110,12 @@ func TestHandleFunc(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostAPIHandler(w, r, s, defaultURL) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostAPIHandler(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
-		assert.Contains(t, rr.Header().Get("Location"), "http://localhost:8080/")
+		assert.Contains(t, rr.Header().Get("Location"), defaultURL)
 
 		var resp models.Response
 		if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {

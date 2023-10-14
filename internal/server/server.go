@@ -1,20 +1,20 @@
 package server
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
+	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/generator"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/storage"
 )
 
-func PostRootHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel, baseURL string) {
+func PostRootHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	body, err := io.ReadAll(r.Body)
+	baseURL := env.Flags.B
 
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
@@ -32,7 +32,7 @@ func PostRootHandler(w http.ResponseWriter, r *http.Request, s storage.StorageMo
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	s.AddValue(id, parsedURL.String())
+	env.Storage.AddValue(r.Context(), id, parsedURL.String())
 	result := fmt.Sprintf("%s/%s", baseURL, id)
 
 	w.WriteHeader(http.StatusCreated)
@@ -41,9 +41,9 @@ func PostRootHandler(w http.ResponseWriter, r *http.Request, s storage.StorageMo
 	w.Write([]byte(result))
 }
 
-func GetHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel) {
+func GetHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	id := r.URL.String()
-	origURL, err := s.GetValue(id[1:])
+	origURL, err := env.Storage.GetValue(r.Context(), id[1:])
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -53,9 +53,10 @@ func GetHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel) 
 	http.Redirect(w, r, origURL, http.StatusTemporaryRedirect)
 }
 
-func PostAPIHandler(w http.ResponseWriter, r *http.Request, s storage.StorageModel, baseURL string) {
+func PostAPIHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	var req models.Request
 	dec := json.NewDecoder(r.Body)
+	baseURL := env.Flags.B
 
 	if err := dec.Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -69,7 +70,7 @@ func PostAPIHandler(w http.ResponseWriter, r *http.Request, s storage.StorageMod
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	s.AddValue(id, parsedURL.String())
+	env.Storage.AddValue(r.Context(), id, parsedURL.String())
 	result := fmt.Sprintf("%s/%s", baseURL, id)
 
 	resp := models.Response{
@@ -86,14 +87,12 @@ func PostAPIHandler(w http.ResponseWriter, r *http.Request, s storage.StorageMod
 	w.Header().Set("Location", result)
 }
 
-func GetPingHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	err := db.Ping()
+func GetPingHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
+	err := env.Storage.Ping()
 	if err != nil {
-		fmt.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println("OK")
 	w.WriteHeader(http.StatusOK)
 }
