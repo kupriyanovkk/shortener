@@ -100,7 +100,7 @@ func TestReadValues(t *testing.T) {
 
 	for _, test := range tests {
 		scanner := bufio.NewScanner(strings.NewReader(test.input))
-		result, err := ReadValues(scanner)
+		result, err := ReadValuesFromFile(scanner)
 
 		if test.expectErr {
 			if err == nil {

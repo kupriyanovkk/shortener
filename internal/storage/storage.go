@@ -28,7 +28,7 @@ const (
 
 var uuid = 0
 
-func ReadValues(scanner *bufio.Scanner) (map[string]string, error) {
+func ReadValuesFromFile(scanner *bufio.Scanner) (map[string]string, error) {
 	if !scanner.Scan() {
 		return nil, scanner.Err()
 	}
@@ -173,7 +173,7 @@ func getFileStorage(filename string) Storage {
 	}
 
 	scanner := bufio.NewScanner(file)
-	values, readErr := ReadValues(scanner)
+	values, readErr := ReadValuesFromFile(scanner)
 	if readErr != nil {
 		panic(readErr)
 	}

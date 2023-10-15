@@ -26,8 +26,16 @@ func Start() {
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		server.PostRootHandler(w, r, env)
 	})
-	r.Post("/api/shorten", func(w http.ResponseWriter, r *http.Request) {
-		server.PostAPIHandler(w, r, env)
+	r.Route("/api", func(r chi.Router) {
+		r.Route("/shorten", func(r chi.Router) {
+			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+				server.PostAPIHandler(w, r, env)
+			})
+
+			r.Post("/batch", func(w http.ResponseWriter, r *http.Request) {
+				server.BatchHandler(w, r, env)
+			})
+		})
 	})
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		server.GetPingHandler(w, r, env)

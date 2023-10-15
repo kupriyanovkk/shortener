@@ -96,3 +96,43 @@ func GetPingHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func BatchHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
+	var req []models.BatchRequest
+	var result []models.BatchResponse
+	baseURL := env.Flags.B
+	dec := json.NewDecoder(r.Body)
+
+	if err := dec.Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if len(req) == 0 {
+		http.Error(w, "empty response", http.StatusBadRequest)
+		return
+	}
+
+	for _, v := range req {
+		parsedURL, err := url.ParseRequestURI(v.OriginalURL)
+		if err != nil {
+			http.Error(w, "Error parsing URL", http.StatusBadRequest)
+			return
+		}
+
+		id, _ := generator.GetRandomStr(10)
+		env.Storage.AddValue(r.Context(), id, parsedURL.String())
+		result = append(result, models.BatchResponse{
+			CorrelationID: v.CorrelationID,
+			ShortURL:      fmt.Sprintf("%s/%s", baseURL, id),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(result); err != nil {
+		return
+	}
+}
