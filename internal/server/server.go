@@ -2,7 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,6 +10,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/generator"
 	"github.com/kupriyanovkk/shortener/internal/models"
+	"github.com/kupriyanovkk/shortener/internal/storage"
 )
 
 func PostRootHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
@@ -32,13 +33,20 @@ func PostRootHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	env.Storage.AddValue(r.Context(), id, parsedURL.String())
-	result := fmt.Sprintf("%s/%s", baseURL, id)
+	short, saveErr := env.Storage.AddValue(r.Context(), storage.AddValueOptions{
+		Original: parsedURL.String(),
+		BaseURL:  baseURL,
+		Short:    id,
+	})
 
-	w.WriteHeader(http.StatusCreated)
+	if errors.Is(saveErr, storage.ErrConflict) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Location", result)
-	w.Write([]byte(result))
+	w.Header().Set("Location", short)
+	w.Write([]byte(short))
 }
 
 func GetHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
@@ -70,21 +78,28 @@ func PostAPIHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	env.Storage.AddValue(r.Context(), id, parsedURL.String())
-	result := fmt.Sprintf("%s/%s", baseURL, id)
+	short, saveErr := env.Storage.AddValue(r.Context(), storage.AddValueOptions{
+		Original: parsedURL.String(),
+		BaseURL:  baseURL,
+		Short:    id,
+	})
 
 	resp := models.Response{
-		Result: result,
+		Result: short,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	if errors.Is(saveErr, storage.ErrConflict) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(resp); err != nil {
 		return
 	}
 
-	w.Header().Set("Location", result)
+	w.Header().Set("Location", short)
 }
 
 func GetPingHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
@@ -121,11 +136,19 @@ func BatchHandler(w http.ResponseWriter, r *http.Request, env *config.Env) {
 		}
 
 		id, _ := generator.GetRandomStr(10)
-		env.Storage.AddValue(r.Context(), id, parsedURL.String())
+		short, saveErr := env.Storage.AddValue(r.Context(), storage.AddValueOptions{
+			Original: parsedURL.String(),
+			BaseURL:  baseURL,
+			Short:    id,
+		})
 		result = append(result, models.BatchResponse{
 			CorrelationID: v.CorrelationID,
-			ShortURL:      fmt.Sprintf("%s/%s", baseURL, id),
+			ShortURL:      short,
 		})
+		if errors.Is(saveErr, storage.ErrConflict) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

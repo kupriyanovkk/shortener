@@ -5,19 +5,27 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
+var ErrConflict = errors.New("data conflict")
+
+type AddValueOptions struct {
+	Original string
+	BaseURL  string
+	Short    string
+}
+
 type StorageModel interface {
-	GetValue(ctx context.Context, key string) (string, error)
-	AddValue(ctx context.Context, key string, value string)
+	GetValue(ctx context.Context, short string) (string, error)
+	AddValue(ctx context.Context, opts AddValueOptions) (string, error)
 	Ping() error
-	Bootstrap(ctx context.Context) error
 }
 
 const (
@@ -47,12 +55,19 @@ func ReadValuesFromFile(scanner *bufio.Scanner) (map[string]string, error) {
 	return values, nil
 }
 
+type DatabaseConnection interface {
+	Ping() error
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+}
+
 type Storage struct {
 	mode   int
 	values map[string]string
 	file   *os.File
 	writer *bufio.Writer
-	db     *sql.DB
+	db     DatabaseConnection
 }
 
 func (s Storage) Ping() error {
@@ -76,58 +91,82 @@ func (s Storage) Bootstrap(ctx context.Context) error {
 		)
 	`)
 
+	tx.ExecContext(ctx, "CREATE UNIQUE INDEX url_id ON shortener (original)")
+
 	return tx.Commit()
 }
 
 func (s Storage) FindOriginalURL(ctx context.Context, short string) (originalURL string, err error) {
-	var original sql.NullString
 	row := s.db.QueryRowContext(ctx, `SELECT original FROM shortener WHERE short = $1`, short)
-	err = row.Scan(&original)
-	return original.String, err
+	err = row.Scan(&originalURL)
+	return
 }
 
-func (s Storage) GetValue(ctx context.Context, key string) (string, error) {
+func (s Storage) FindShortURL(ctx context.Context, original string) (shortURL string, err error) {
+	row := s.db.QueryRowContext(ctx, `SELECT short FROM shortener WHERE original = $1`, original)
+	err = row.Scan(&shortURL)
+	return
+}
+
+func (s Storage) GetValue(ctx context.Context, short string) (string, error) {
 	if s.mode == DataBaseStorage {
-		value, err := s.FindOriginalURL(ctx, key)
+		value, err := s.FindOriginalURL(ctx, short)
 		return value, err
 	}
 
-	if value, ok := s.values[key]; ok {
+	if value, ok := s.values[short]; ok {
 		return value, nil
 	}
 
-	return "", fmt.Errorf("value doesn't exist by key %s", key)
+	return "", fmt.Errorf("value doesn't exist by key %s", short)
 }
 
-func (s Storage) AddValue(ctx context.Context, key string, value string) {
-	s.values[key] = value
-
-	if s.mode == DataBaseStorage {
-		err := s.SaveURL(ctx, key, value)
-		if err != nil {
-			log.Fatal(`SaveURL `, err)
-		}
+func (s Storage) AddValue(ctx context.Context, opts AddValueOptions) (string, error) {
+	if opts.Original == "" {
+		return "", errors.New("original URL cannot be empty")
 	}
 
-	if s.mode == FileWriterStorage {
+	s.values[opts.Short] = opts.Original
+
+	switch s.mode {
+	case DataBaseStorage:
+		err := s.SaveURL(ctx, opts.Short, opts.Original)
+
+		if err != nil && errors.Is(err, ErrConflict) {
+			short, _ := s.FindShortURL(ctx, opts.Original)
+			result := fmt.Sprintf("%s/%s", opts.BaseURL, short)
+
+			return result, err
+		}
+	case FileWriterStorage:
+		result := fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short)
 		uuid += 1
 		if err := s.WriteValue(&models.URL{
 			UUID:     uuid,
-			Short:    key,
-			Original: value,
+			Short:    opts.Short,
+			Original: opts.Original,
 		}); err != nil {
-			log.Fatal(`WriteValue `, err)
+			return result, err
 		}
 	}
+
+	return fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short), nil
 }
 
-func (s Storage) SaveURL(ctx context.Context, key string, value string) error {
+func (s Storage) SaveURL(ctx context.Context, short, original string) error {
 	_, err := s.db.ExecContext(ctx, `
 			INSERT INTO shortener
 			(short, original)
 			VALUES
 			($1, $2);
-	`, key, value)
+	`, short, original)
+
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			err = ErrConflict
+		}
+	}
 
 	return err
 }

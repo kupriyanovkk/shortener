@@ -65,7 +65,11 @@ func TestHandleFuncs(t *testing.T) {
 		id := "abc123"
 		s := storage.NewStorage(storageFile, dbDSN)
 		env := &config.Env{Flags: f, Storage: s}
-		s.AddValue(context.Background(), id, "http://example.com")
+		s.AddValue(context.Background(), storage.AddValueOptions{
+			Short:    id,
+			Original: "http://example.com",
+			BaseURL:  defaultURL,
+		})
 
 		req, err := http.NewRequest(http.MethodGet, "/"+id, nil)
 		if err != nil {
