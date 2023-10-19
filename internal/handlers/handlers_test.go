@@ -1,4 +1,4 @@
-package server
+package handlers
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ var f = config.ConfigFlags{
 	D: dbDSN,
 }
 
-func TestHandleFuncs(t *testing.T) {
+func TestPostRoot(t *testing.T) {
 	t.Run("Valid POST Request", func(t *testing.T) {
 		body := []byte("https://example.com")
 		s := storage.NewStorage(storageFile, dbDSN)
@@ -35,7 +35,7 @@ func TestHandleFuncs(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRootHandler(w, r, env) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRoot(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -53,14 +53,16 @@ func TestHandleFuncs(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRootHandler(w, r, env) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostRoot(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "Error parsing URL")
 	})
+}
 
+func TestGetID(t *testing.T) {
 	t.Run("Valid GET Request", func(t *testing.T) {
 		id := "abc123"
 		s := storage.NewStorage(storageFile, dbDSN)
@@ -77,7 +79,7 @@ func TestHandleFuncs(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetHandler(w, r, env) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetID(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -94,7 +96,7 @@ func TestHandleFuncs(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetHandler(w, r, env) })
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { GetID(w, r, env) })
 
 		handler.ServeHTTP(rr, req)
 
@@ -103,7 +105,7 @@ func TestHandleFuncs(t *testing.T) {
 	})
 }
 
-func TestPostAPIHandler(t *testing.T) {
+func TestPostApiShorten(t *testing.T) {
 	s := storage.NewStorage(storageFile, dbDSN)
 	env := &config.Env{Flags: f, Storage: s}
 	body := []byte(`{"url":"http://example.com/"}`)
@@ -114,7 +116,7 @@ func TestPostAPIHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostAPIHandler(w, r, env) })
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { PostAPIShorten(w, r, env) })
 
 	handler.ServeHTTP(rr, req)
 
@@ -128,7 +130,7 @@ func TestPostAPIHandler(t *testing.T) {
 	require.NotEmpty(t, resp, resp.Result)
 }
 
-func TestBatchHandler(t *testing.T) {
+func TestPostApiShortenBatch(t *testing.T) {
 	s := storage.NewStorage(storageFile, dbDSN)
 	env := &config.Env{Flags: f, Storage: s}
 
@@ -185,7 +187,7 @@ func TestBatchHandler(t *testing.T) {
 			req := httptest.NewRequest("POST", "/api/shorten/batch", bytes.NewBuffer(reqBody))
 			rec := httptest.NewRecorder()
 
-			BatchHandler(rec, req, env)
+			PostAPIShortenBatch(rec, req, env)
 
 			if rec.Code != tc.ExpectedCode {
 				t.Errorf("Test case '%s' failed. Expected status code %d, but got %d", tc.Name, tc.ExpectedCode, rec.Code)

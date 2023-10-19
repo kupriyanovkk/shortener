@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/middlewares"
-	"github.com/kupriyanovkk/shortener/internal/server"
 	"github.com/kupriyanovkk/shortener/internal/storage"
 )
 
@@ -21,24 +21,24 @@ func Start() {
 		middlewares.Gzip,
 	)
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		server.GetHandler(w, r, env)
+		handlers.GetID(w, r, env)
 	})
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		server.PostRootHandler(w, r, env)
+		handlers.PostRoot(w, r, env)
 	})
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/shorten", func(r chi.Router) {
 			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-				server.PostAPIHandler(w, r, env)
+				handlers.PostAPIShorten(w, r, env)
 			})
 
 			r.Post("/batch", func(w http.ResponseWriter, r *http.Request) {
-				server.BatchHandler(w, r, env)
+				handlers.PostAPIShortenBatch(w, r, env)
 			})
 		})
 	})
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		server.GetPingHandler(w, r, env)
+		handlers.GetPing(w, r, env)
 	})
 
 	err := http.ListenAndServe(f.A, r)

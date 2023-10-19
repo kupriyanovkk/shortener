@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/server"
 	"github.com/kupriyanovkk/shortener/internal/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -54,7 +54,7 @@ func TestGzip(t *testing.T) {
 		s := storage.NewStorage(storageFile, dbDSN)
 		env := &config.Env{Flags: f, Storage: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			server.PostAPIHandler(w, r, env)
+			handlers.PostAPIShorten(w, r, env)
 		}))
 		srv := httptest.NewServer(handler)
 		defer srv.Close()
@@ -76,7 +76,7 @@ func TestGzip(t *testing.T) {
 		s := storage.NewStorage(storageFile, dbDSN)
 		env := &config.Env{Flags: f, Storage: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			server.PostAPIHandler(w, r, env)
+			handlers.PostAPIShorten(w, r, env)
 		}))
 		srv := httptest.NewServer(handler)
 		defer srv.Close()
@@ -102,7 +102,7 @@ func TestGzip(t *testing.T) {
 		s := storage.NewStorage(storageFile, dbDSN)
 		env := &config.Env{Flags: f, Storage: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			server.PostAPIHandler(w, r, env)
+			handlers.PostAPIShorten(w, r, env)
 		}))
 		srv := httptest.NewServer(handler)
 		defer srv.Close()
