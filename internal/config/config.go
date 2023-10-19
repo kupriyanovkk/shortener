@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/kupriyanovkk/shortener/internal/storage"
+	"github.com/kupriyanovkk/shortener/internal/store"
 )
 
 type ConfigFlags struct {
@@ -48,6 +48,6 @@ func ParseFlags() ConfigFlags {
 }
 
 type Env struct {
-	Flags   ConfigFlags
-	Storage storage.StorageModel
+	Flags ConfigFlags
+	Store store.Store
 }

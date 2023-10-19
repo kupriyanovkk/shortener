@@ -8,7 +8,7 @@ import (
 
 func GetID(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	id := r.URL.String()
-	origURL, err := env.Storage.GetValue(r.Context(), id[1:])
+	origURL, err := env.Store.GetValue(r.Context(), id[1:])
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -12,7 +12,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/storage"
+	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,8 +51,8 @@ func TestGzip(t *testing.T) {
 	}
 
 	t.Run("sends gzip", func(t *testing.T) {
-		s := storage.NewStorage(storageFile, dbDSN)
-		env := &config.Env{Flags: f, Storage: s}
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			handlers.PostAPIShorten(w, r, env)
 		}))
@@ -73,8 +73,8 @@ func TestGzip(t *testing.T) {
 	})
 
 	t.Run("accepts gzip", func(t *testing.T) {
-		s := storage.NewStorage(storageFile, dbDSN)
-		env := &config.Env{Flags: f, Storage: s}
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			handlers.PostAPIShorten(w, r, env)
 		}))
@@ -99,8 +99,8 @@ func TestGzip(t *testing.T) {
 	})
 
 	t.Run("no gzip", func(t *testing.T) {
-		s := storage.NewStorage(storageFile, dbDSN)
-		env := &config.Env{Flags: f, Storage: s}
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			handlers.PostAPIShorten(w, r, env)
 		}))

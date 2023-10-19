@@ -7,14 +7,26 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/middlewares"
-	"github.com/kupriyanovkk/shortener/internal/storage"
+	"github.com/kupriyanovkk/shortener/internal/store"
+	"github.com/kupriyanovkk/shortener/internal/store/db"
+	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
+	inmemory "github.com/kupriyanovkk/shortener/internal/store/in_memory"
 )
 
 func Start() {
 	r := chi.NewRouter()
 	f := config.ParseFlags()
-	s := storage.NewStorage(f.F, f.D)
-	env := &config.Env{Flags: f, Storage: s}
+
+	var store store.Store
+	if f.D != "" {
+		store = db.NewStore(f.D)
+	} else if f.F != "" {
+		store = infile.NewStore(f.F)
+	} else {
+		store = inmemory.NewStore()
+	}
+
+	env := &config.Env{Flags: f, Store: store}
 
 	r.Use(
 		middlewares.Logger,

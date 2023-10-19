@@ -10,7 +10,8 @@ import (
 
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/storage"
+	"github.com/kupriyanovkk/shortener/internal/store"
+	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,8 +28,8 @@ var f = config.ConfigFlags{
 func TestPostRoot(t *testing.T) {
 	t.Run("Valid POST Request", func(t *testing.T) {
 		body := []byte("https://example.com")
-		s := storage.NewStorage(storageFile, dbDSN)
-		env := &config.Env{Flags: f, Storage: s}
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		req, err := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 		if err != nil {
 			t.Fatal(err)
@@ -45,8 +46,8 @@ func TestPostRoot(t *testing.T) {
 
 	t.Run("Invalid POST Request", func(t *testing.T) {
 		body := []byte("invalid-url")
-		s := storage.NewStorage(storageFile, dbDSN)
-		env := &config.Env{Flags: f, Storage: s}
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		req, err := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 		if err != nil {
 			t.Fatal(err)
@@ -65,9 +66,9 @@ func TestPostRoot(t *testing.T) {
 func TestGetID(t *testing.T) {
 	t.Run("Valid GET Request", func(t *testing.T) {
 		id := "abc123"
-		s := storage.NewStorage(storageFile, dbDSN)
-		env := &config.Env{Flags: f, Storage: s}
-		s.AddValue(context.Background(), storage.AddValueOptions{
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
+		s.AddValue(context.Background(), store.AddValueOptions{
 			Short:    id,
 			Original: "http://example.com",
 			BaseURL:  defaultURL,
@@ -88,8 +89,8 @@ func TestGetID(t *testing.T) {
 	})
 
 	t.Run("Invalid GET Request (Not Found)", func(t *testing.T) {
-		s := storage.NewStorage(storageFile, dbDSN)
-		env := &config.Env{Flags: f, Storage: s}
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		req, err := http.NewRequest(http.MethodGet, "/nonexistent", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -106,8 +107,8 @@ func TestGetID(t *testing.T) {
 }
 
 func TestPostApiShorten(t *testing.T) {
-	s := storage.NewStorage(storageFile, dbDSN)
-	env := &config.Env{Flags: f, Storage: s}
+	s := infile.NewStore(f.F)
+	env := &config.Env{Flags: f, Store: s}
 	body := []byte(`{"url":"http://example.com/"}`)
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
 
@@ -131,8 +132,8 @@ func TestPostApiShorten(t *testing.T) {
 }
 
 func TestPostApiShortenBatch(t *testing.T) {
-	s := storage.NewStorage(storageFile, dbDSN)
-	env := &config.Env{Flags: f, Storage: s}
+	s := infile.NewStore(f.F)
+	env := &config.Env{Flags: f, Store: s}
 
 	testCases := []struct {
 		Name         string

@@ -1,25 +1,23 @@
-package storage
+package db
 
 import (
-	"bufio"
 	"context"
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/kupriyanovkk/shortener/internal/store"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStorage_GetValue(t *testing.T) {
+func TestGetValue(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("Failed to create mock database: %v", err)
 	}
 	defer db.Close()
 
-	s := Storage{
-		mode:   DataBaseStorage,
+	s := Store{
 		db:     db,
 		values: make(map[string]string),
 	}
@@ -64,15 +62,14 @@ func TestStorage_GetValue(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestStorage_AddValue(t *testing.T) {
+func TestAddValue(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error occurred while creating mock database: %s", err)
 	}
 	defer db.Close()
 
-	storage := Storage{
-		mode:   DataBaseStorage,
+	storage := Store{
 		db:     db,
 		values: make(map[string]string),
 	}
@@ -100,11 +97,11 @@ func TestStorage_AddValue(t *testing.T) {
 			short:    "example",
 			original: "https://example.com",
 			dbExpectation: func() {
-				mock.ExpectExec("INSERT INTO shortener").WithArgs("example", "https://example.com").WillReturnError(ErrConflict)
+				mock.ExpectExec("INSERT INTO shortener").WithArgs("example", "https://example.com").WillReturnError(store.ErrConflict)
 				mock.ExpectQuery("SELECT short FROM shortener").WithArgs("https://example.com").WillReturnRows(sqlmock.NewRows([]string{"short"}).AddRow("example"))
 			},
 			expectedURL: "https://example.com/example",
-			expectedErr: ErrConflict,
+			expectedErr: store.ErrConflict,
 		},
 		{
 			name:          "AddValue with FileWriterStorage",
@@ -127,11 +124,11 @@ func TestStorage_AddValue(t *testing.T) {
 			short:    "example",
 			original: "https://example.com",
 			dbExpectation: func() {
-				mock.ExpectExec("INSERT INTO shortener").WithArgs("example", "https://example.com").WillReturnError(ErrConflict)
+				mock.ExpectExec("INSERT INTO shortener").WithArgs("example", "https://example.com").WillReturnError(store.ErrConflict)
 				mock.ExpectQuery("SELECT short FROM shortener").WithArgs("https://example.com").WillReturnRows(sqlmock.NewRows([]string{"short"}).AddRow("example"))
 			},
 			expectedURL: "https://example.com/example",
-			expectedErr: ErrConflict,
+			expectedErr: store.ErrConflict,
 		},
 		{
 			name:          "AddValue with an empty original URL",
@@ -147,7 +144,7 @@ func TestStorage_AddValue(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.dbExpectation()
 
-			url, err := storage.AddValue(context.Background(), AddValueOptions{
+			url, err := storage.AddValue(context.Background(), store.AddValueOptions{
 				Original: tc.original,
 				BaseURL:  "https://example.com",
 				Short:    tc.short,
@@ -168,57 +165,6 @@ func TestStorage_AddValue(t *testing.T) {
 	}
 }
 
-func TestReadValuesFromFile(t *testing.T) {
-	var errParsingJSON = errors.New("unexpected end of JSON input")
-	testCases := []struct {
-		name     string
-		input    string
-		expected map[string]string
-		err      error
-	}{
-		{
-			name:     "Read from empty file",
-			input:    "",
-			expected: nil,
-			err:      nil,
-		},
-		{
-			name: "Read from valid JSON file",
-			input: `
-			{"uuid": 1, "short_url": "abc", "original_url": "https://example.com"}
-			{"uuid": 2, "short_url": "def", "original_url": "https://example.org"}`,
-			expected: map[string]string{
-				"abc": "https://example.com",
-				"def": "https://example.org",
-			},
-			err: nil,
-		},
-		{
-			name: "Error while parsing JSON",
-			input: `{"short": "abc", "original": "https://example.com"}
-												{"short": "def", "original": "https://example.org"`,
-			expected: nil,
-			err:      errParsingJSON,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			inputReader := strings.NewReader(tc.input)
-			scanner := bufio.NewScanner(inputReader)
-			values, err := ReadValuesFromFile(scanner)
-
-			if err != nil && err.Error() != tc.err.Error() {
-				t.Errorf("Expected error: %v, got: %v", tc.err, err)
-			}
-
-			if !compareStringMaps(values, tc.expected) {
-				t.Errorf("Expected values: %v, got: %v", tc.expected, values)
-			}
-		})
-	}
-}
-
 func TestSaveURL(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -226,8 +172,7 @@ func TestSaveURL(t *testing.T) {
 	}
 	defer db.Close()
 
-	storage := Storage{
-		mode:   DataBaseStorage,
+	storage := Store{
 		db:     db,
 		values: make(map[string]string),
 	}
@@ -237,7 +182,7 @@ func TestSaveURL(t *testing.T) {
 	}
 
 	conflictExpectation := func(short, original string) {
-		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original).WillReturnError(ErrConflict)
+		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original).WillReturnError(store.ErrConflict)
 	}
 
 	testCases := []struct {
@@ -259,7 +204,7 @@ func TestSaveURL(t *testing.T) {
 			short:       "example",
 			original:    "https://example.com",
 			expectation: conflictExpectation,
-			expectedErr: ErrConflict,
+			expectedErr: store.ErrConflict,
 		},
 	}
 
@@ -278,19 +223,4 @@ func TestSaveURL(t *testing.T) {
 			}
 		})
 	}
-}
-
-func compareStringMaps(a, b map[string]string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	for key, valA := range a {
-		valB, exists := b[key]
-		if !exists || valA != valB {
-			return false
-		}
-	}
-
-	return true
 }

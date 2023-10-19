@@ -7,7 +7,7 @@ import (
 )
 
 func GetPing(w http.ResponseWriter, r *http.Request, env *config.Env) {
-	err := env.Storage.Ping()
+	err := env.Store.Ping()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
