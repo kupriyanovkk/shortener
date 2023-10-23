@@ -9,15 +9,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/server"
-	"github.com/kupriyanovkk/shortener/internal/storage"
+	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGzip(t *testing.T) {
 	defaultURL := "http://localhost:8080/"
 	storageFile := "/tmp/short-url-db.json"
+	dbDSN := ""
+
+	f := config.ConfigFlags{
+		B: defaultURL,
+		F: storageFile,
+		D: dbDSN,
+	}
 
 	// Helper function to create a compressed request body
 	createCompressedRequestBody := func(input string) []byte {
@@ -43,9 +51,10 @@ func TestGzip(t *testing.T) {
 	}
 
 	t.Run("sends gzip", func(t *testing.T) {
-		s := storage.NewStorage(storageFile)
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			server.PostAPIHandler(w, r, s, defaultURL)
+			handlers.PostAPIShorten(w, r, env)
 		}))
 		srv := httptest.NewServer(handler)
 		defer srv.Close()
@@ -64,9 +73,10 @@ func TestGzip(t *testing.T) {
 	})
 
 	t.Run("accepts gzip", func(t *testing.T) {
-		s := storage.NewStorage(storageFile)
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			server.PostAPIHandler(w, r, s, defaultURL)
+			handlers.PostAPIShorten(w, r, env)
 		}))
 		srv := httptest.NewServer(handler)
 		defer srv.Close()
@@ -89,9 +99,10 @@ func TestGzip(t *testing.T) {
 	})
 
 	t.Run("no gzip", func(t *testing.T) {
-		s := storage.NewStorage(storageFile)
+		s := infile.NewStore(f.F)
+		env := &config.Env{Flags: f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			server.PostAPIHandler(w, r, s, defaultURL)
+			handlers.PostAPIShorten(w, r, env)
 		}))
 		srv := httptest.NewServer(handler)
 		defer srv.Close()

@@ -5,28 +5,52 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/middlewares"
-	"github.com/kupriyanovkk/shortener/internal/server"
-	"github.com/kupriyanovkk/shortener/internal/storage"
+	"github.com/kupriyanovkk/shortener/internal/store"
+	"github.com/kupriyanovkk/shortener/internal/store/db"
+	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
+	inmemory "github.com/kupriyanovkk/shortener/internal/store/in_memory"
 )
 
 func Start() {
 	r := chi.NewRouter()
 	f := config.ParseFlags()
-	s := storage.NewStorage(f.F)
+
+	var store store.Store
+	if f.D != "" {
+		store = db.NewStore(f.D)
+	} else if f.F != "" {
+		store = infile.NewStore(f.F)
+	} else {
+		store = inmemory.NewStore()
+	}
+
+	env := &config.Env{Flags: f, Store: store}
 
 	r.Use(
 		middlewares.Logger,
 		middlewares.Gzip,
 	)
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		server.GetHandler(w, r, s)
+		handlers.GetID(w, r, env)
 	})
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		server.PostRootHandler(w, r, s, f.B)
+		handlers.PostRoot(w, r, env)
 	})
-	r.Post("/api/shorten", func(w http.ResponseWriter, r *http.Request) {
-		server.PostAPIHandler(w, r, s, f.B)
+	r.Route("/api", func(r chi.Router) {
+		r.Route("/shorten", func(r chi.Router) {
+			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+				handlers.PostAPIShorten(w, r, env)
+			})
+
+			r.Post("/batch", func(w http.ResponseWriter, r *http.Request) {
+				handlers.PostAPIShortenBatch(w, r, env)
+			})
+		})
+	})
+	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetPing(w, r, env)
 	})
 
 	err := http.ListenAndServe(f.A, r)
