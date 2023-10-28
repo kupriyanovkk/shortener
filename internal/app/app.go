@@ -31,6 +31,7 @@ func Start() {
 	r.Use(
 		middlewares.Logger,
 		middlewares.Gzip,
+		middlewares.Auth,
 	)
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetID(w, r, env)
@@ -46,6 +47,14 @@ func Start() {
 
 			r.Post("/batch", func(w http.ResponseWriter, r *http.Request) {
 				handlers.PostAPIShortenBatch(w, r, env)
+			})
+		})
+
+		r.Route("/user", func(r chi.Router) {
+			r.Route("/urls", func(r chi.Router) {
+				r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+					handlers.GetAPIUserURLs(w, r, env)
+				})
 			})
 		})
 	})

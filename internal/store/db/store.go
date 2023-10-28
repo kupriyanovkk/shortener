@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgerrcode"
+	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/store"
 	"github.com/lib/pq"
 )
@@ -25,10 +26,11 @@ func (s Store) Bootstrap(ctx context.Context) error {
 	defer tx.Rollback()
 
 	tx.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS shortener(
-			uuid serial PRIMARY KEY,
+		CREATE TABLE shortener(
+			id serial PRIMARY KEY,
 			short varchar(128),
-			original TEXT
+			original TEXT,
+			user_id varchar(128) NOT NULL
 		)
 	`)
 
@@ -49,13 +51,13 @@ func (s Store) FindShortURL(ctx context.Context, original string) (shortURL stri
 	return
 }
 
-func (s Store) SaveURL(ctx context.Context, short, original string) error {
+func (s Store) InsertURL(ctx context.Context, short, original, userID string) error {
 	_, err := s.db.ExecContext(ctx, `
 			INSERT INTO shortener
-			(short, original)
+			(short, original, user_id)
 			VALUES
-			($1, $2);
-	`, short, original)
+			($1, $2, $3);
+	`, short, original, userID)
 
 	if err != nil {
 		var pgErr *pq.Error
@@ -79,7 +81,7 @@ func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string
 
 	s.values[opts.Short] = opts.Original
 
-	err := s.SaveURL(ctx, opts.Short, opts.Original)
+	err := s.InsertURL(ctx, opts.Short, opts.Original, opts.UserID)
 
 	if err != nil && errors.Is(err, store.ErrConflict) {
 		short, _ := s.FindShortURL(ctx, opts.Original)
@@ -89,6 +91,38 @@ func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string
 	}
 
 	return fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short), nil
+}
+
+func (s Store) GetUserURLs(ctx context.Context, opts store.GetUserURLsOptions) ([]models.UserURL, error) {
+	limit := 100
+	result := make([]models.UserURL, 0, limit)
+
+	rows, err := s.db.QueryContext(ctx, `SELECT original, short FROM shortener WHERE user_id = $1 LIMIT $2`, opts.UserID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var u models.UserURL
+		err = rows.Scan(&u.Original, &u.Short)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, models.UserURL{
+			Short:    fmt.Sprintf("%s/%s", opts.BaseURL, u.Short),
+			Original: u.Original,
+		})
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (s Store) Ping() error {

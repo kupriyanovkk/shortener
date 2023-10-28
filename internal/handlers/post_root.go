@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
 	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/contextkey"
 	"github.com/kupriyanovkk/shortener/internal/generator"
 	"github.com/kupriyanovkk/shortener/internal/store"
 )
@@ -14,6 +16,7 @@ import (
 func PostRoot(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	body, err := io.ReadAll(r.Body)
 	baseURL := env.Flags.B
+	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
@@ -35,6 +38,7 @@ func PostRoot(w http.ResponseWriter, r *http.Request, env *config.Env) {
 		Original: parsedURL.String(),
 		BaseURL:  baseURL,
 		Short:    id,
+		UserID:   userID,
 	})
 
 	if errors.Is(saveErr, store.ErrConflict) {

@@ -3,10 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
 	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/contextkey"
 	"github.com/kupriyanovkk/shortener/internal/generator"
 	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/store"
@@ -17,6 +19,7 @@ func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, env *config.Env
 	var result []models.BatchResponse
 	baseURL := env.Flags.B
 	dec := json.NewDecoder(r.Body)
+	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 
 	if err := dec.Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -40,6 +43,7 @@ func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, env *config.Env
 			Original: parsedURL.String(),
 			BaseURL:  baseURL,
 			Short:    id,
+			UserID:   userID,
 		})
 		result = append(result, models.BatchResponse{
 			CorrelationID: v.CorrelationID,
