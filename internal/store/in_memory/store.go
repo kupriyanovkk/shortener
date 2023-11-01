@@ -10,11 +10,15 @@ import (
 )
 
 type Store struct {
-	values map[string]store.AddValueOptions
+	values map[string]models.URL
 }
 
-func (s Store) GetValue(ctx context.Context, short string) (string, error) {
+func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error) {
 	if value, ok := s.values[short]; ok {
+		if value.DeletedFlag {
+			return "", errors.New("URL is deleted")
+		}
+
 		return value.Original, nil
 	}
 
@@ -26,7 +30,12 @@ func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string
 		return "", errors.New("original URL cannot be empty")
 	}
 
-	s.values[opts.Short] = opts
+	s.values[opts.Short] = models.URL{
+		Short:       opts.Short,
+		Original:    opts.Original,
+		UserID:      opts.UserID,
+		DeletedFlag: false,
+	}
 
 	return fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short), nil
 }
@@ -49,8 +58,29 @@ func (s Store) GetUserURLs(ctx context.Context, opts store.GetUserURLsOptions) (
 	return result, nil
 }
 
+func (s Store) DeleteURLs(ctx context.Context, opts []store.DeletedURLs) error {
+	for _, o := range opts {
+		for _, value := range s.values {
+			if value.UserID == o.UserID {
+				for _, u := range o.URLs {
+					if u == value.Short {
+						s.values[value.Short] = models.URL{
+							Short:       value.Short,
+							Original:    value.Original,
+							UserID:      value.UserID,
+							DeletedFlag: true,
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func NewStore() store.Store {
 	return Store{
-		values: make(map[string]store.AddValueOptions),
+		values: make(map[string]models.URL),
 	}
 }

@@ -47,7 +47,8 @@ func ParseFlags() ConfigFlags {
 	}
 }
 
-type Env struct {
-	Flags ConfigFlags
-	Store store.Store
+type App struct {
+	Flags   ConfigFlags
+	Store   store.Store
+	URLChan chan store.DeletedURLs
 }

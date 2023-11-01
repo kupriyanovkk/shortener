@@ -11,7 +11,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/store"
 )
 
-func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, env *config.Env) {
+func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
 	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 	_, err := r.Cookie("UserID")
 
@@ -20,9 +20,9 @@ func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, env *config.Env) {
 		return
 	}
 
-	URLs, err := env.Store.GetUserURLs(r.Context(), store.GetUserURLsOptions{
+	URLs, err := app.Store.GetUserURLs(r.Context(), store.GetUserURLsOptions{
 		UserID:  userID,
-		BaseURL: env.Flags.B,
+		BaseURL: app.Flags.B,
 	})
 
 	if err != nil {

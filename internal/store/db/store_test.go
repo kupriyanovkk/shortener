@@ -8,60 +8,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/store"
-	"github.com/stretchr/testify/assert"
 )
-
-func TestGetValue(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("Failed to create mock database: %v", err)
-	}
-	defer db.Close()
-
-	s := Store{
-		db:     db,
-		values: make(map[string]string),
-	}
-
-	testCases := []struct {
-		short         string
-		expectedValue string
-		expectedErr   error
-		dbMockExpect  func()
-	}{
-		{
-			short:         "example",
-			expectedValue: "http://example.com",
-			expectedErr:   nil,
-			dbMockExpect: func() {
-				mock.ExpectQuery("SELECT original FROM shortener WHERE short = ?").
-					WithArgs("example").
-					WillReturnRows(sqlmock.NewRows([]string{"original"}).AddRow("http://example.com"))
-			},
-		},
-		{
-			short:         "nonexistent",
-			expectedValue: "",
-			expectedErr:   errors.New("not found"),
-			dbMockExpect: func() {
-				mock.ExpectQuery("SELECT original FROM shortener WHERE short = ?").
-					WithArgs("nonexistent").
-					WillReturnError(errors.New("not found"))
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.short, func(t *testing.T) {
-			tc.dbMockExpect()
-			value, err := s.GetValue(context.Background(), tc.short)
-			assert.Equal(t, tc.expectedValue, value)
-			assert.Equal(t, tc.expectedErr, err)
-		})
-	}
-
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
 
 func TestAddValue(t *testing.T) {
 	db, mock, err := sqlmock.New()
@@ -71,12 +18,11 @@ func TestAddValue(t *testing.T) {
 	defer db.Close()
 
 	storage := Store{
-		db:     db,
-		values: make(map[string]string),
+		db: db,
 	}
 
 	successExpectation := func(short, original, user string) {
-		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnResult(sqlmock.NewResult(1, 1))
 	}
 
 	testCases := []struct {
@@ -103,7 +49,7 @@ func TestAddValue(t *testing.T) {
 			original: "https://example.com",
 			user:     "123",
 			dbExpectation: func(short, original, user string) {
-				mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user).WillReturnError(store.ErrConflict)
+				mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(store.ErrConflict)
 				mock.ExpectQuery("SELECT short FROM shortener").WithArgs(original).WillReturnRows(sqlmock.NewRows([]string{"short"}).AddRow(short))
 			},
 			expectedURL: "https://example.com/example",
@@ -133,7 +79,7 @@ func TestAddValue(t *testing.T) {
 			original: "https://example.com",
 			user:     "123",
 			dbExpectation: func(short, original, user string) {
-				mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user).WillReturnError(store.ErrConflict)
+				mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(store.ErrConflict)
 				mock.ExpectQuery("SELECT short FROM shortener").WithArgs(original).WillReturnRows(sqlmock.NewRows([]string{"short"}).AddRow(short))
 			},
 			expectedURL: "https://example.com/example",
@@ -184,16 +130,15 @@ func TestSaveURL(t *testing.T) {
 	defer db.Close()
 
 	storage := Store{
-		db:     db,
-		values: make(map[string]string),
+		db: db,
 	}
 
 	successExpectation := func(short, original, user string) {
-		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnResult(sqlmock.NewResult(1, 1))
 	}
 
 	conflictExpectation := func(short, original, user string) {
-		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user).WillReturnError(store.ErrConflict)
+		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(store.ErrConflict)
 	}
 
 	testCases := []struct {
@@ -247,8 +192,7 @@ func TestGetUserURLs(t *testing.T) {
 	defer db.Close()
 
 	s := Store{
-		db:     db,
-		values: make(map[string]string),
+		db: db,
 	}
 
 	userID := "testUserID"

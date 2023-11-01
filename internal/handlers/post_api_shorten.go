@@ -14,10 +14,10 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/store"
 )
 
-func PostAPIShorten(w http.ResponseWriter, r *http.Request, env *config.Env) {
+func PostAPIShorten(w http.ResponseWriter, r *http.Request, app *config.App) {
 	var req models.Request
 	dec := json.NewDecoder(r.Body)
-	baseURL := env.Flags.B
+	baseURL := app.Flags.B
 	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 
 	if err := dec.Decode(&req); err != nil {
@@ -32,7 +32,7 @@ func PostAPIShorten(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	short, saveErr := env.Store.AddValue(r.Context(), store.AddValueOptions{
+	short, saveErr := app.Store.AddValue(r.Context(), store.AddValueOptions{
 		Original: parsedURL.String(),
 		BaseURL:  baseURL,
 		Short:    id,

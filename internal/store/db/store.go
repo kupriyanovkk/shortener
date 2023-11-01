@@ -13,8 +13,7 @@ import (
 )
 
 type Store struct {
-	values map[string]string
-	db     store.DatabaseConnection
+	db store.DatabaseConnection
 }
 
 func (s Store) Bootstrap(ctx context.Context) error {
@@ -30,7 +29,8 @@ func (s Store) Bootstrap(ctx context.Context) error {
 			id serial PRIMARY KEY,
 			short varchar(128),
 			original TEXT,
-			user_id varchar(128) NOT NULL
+			user_id varchar(128) NOT NULL,
+			is_deleted BOOLEAN NOT NULL
 		)
 	`)
 
@@ -39,10 +39,18 @@ func (s Store) Bootstrap(ctx context.Context) error {
 	return tx.Commit()
 }
 
-func (s Store) FindOriginalURL(ctx context.Context, short string) (originalURL string, err error) {
-	row := s.db.QueryRowContext(ctx, `SELECT original FROM shortener WHERE short = $1`, short)
-	err = row.Scan(&originalURL)
-	return
+func (s Store) FindOriginalURL(ctx context.Context, short string) (models.URL, error) {
+	var (
+		original   string
+		isDeleted bool
+	)
+	row := s.db.QueryRowContext(ctx, `SELECT original, is_deleted FROM shortener WHERE short = $1`, short)
+	err := row.Scan(&original, &isDeleted)
+
+	return models.URL{
+		Original:    original,
+		DeletedFlag: isDeleted,
+	}, err
 }
 
 func (s Store) FindShortURL(ctx context.Context, original string) (shortURL string, err error) {
@@ -54,10 +62,10 @@ func (s Store) FindShortURL(ctx context.Context, original string) (shortURL stri
 func (s Store) InsertURL(ctx context.Context, short, original, userID string) error {
 	_, err := s.db.ExecContext(ctx, `
 			INSERT INTO shortener
-			(short, original, user_id)
+			(short, original, user_id, is_deleted)
 			VALUES
-			($1, $2, $3);
-	`, short, original, userID)
+			($1, $2, $3, $4);
+	`, short, original, userID, false)
 
 	if err != nil {
 		var pgErr *pq.Error
@@ -69,17 +77,20 @@ func (s Store) InsertURL(ctx context.Context, short, original, userID string) er
 	return err
 }
 
-func (s Store) GetValue(ctx context.Context, short string) (string, error) {
-	value, err := s.FindOriginalURL(ctx, short)
-	return value, err
+func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error) {
+	URL, err := s.FindOriginalURL(ctx, short)
+
+	if URL.DeletedFlag {
+		return "", errors.New("URL is deleted")
+	}
+
+	return URL.Original, err
 }
 
 func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string, error) {
 	if opts.Original == "" {
 		return "", errors.New("original URL cannot be empty")
 	}
-
-	s.values[opts.Short] = opts.Original
 
 	err := s.InsertURL(ctx, opts.Short, opts.Original, opts.UserID)
 
@@ -125,6 +136,31 @@ func (s Store) GetUserURLs(ctx context.Context, opts store.GetUserURLsOptions) (
 	return result, nil
 }
 
+func (s Store) DeleteURLs(ctx context.Context, opts []store.DeletedURLs) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	for _, o := range opts {
+		for _, u := range o.URLs {
+			_, err := s.db.ExecContext(ctx, `
+			UPDATE shortener SET is_deleted = TRUE
+				WHERE short = $1 AND user_id = $2
+		`, u, o.UserID)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (s Store) Ping() error {
 	err := s.db.Ping()
 	return err
@@ -137,8 +173,7 @@ func NewStore(dbDSN string) store.Store {
 	}
 
 	store := Store{
-		db:     db,
-		values: make(map[string]string),
+		db: db,
 	}
 	store.Bootstrap(context.Background())
 

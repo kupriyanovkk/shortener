@@ -14,10 +14,10 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/store"
 )
 
-func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, env *config.Env) {
+func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, app *config.App) {
 	var req []models.BatchRequest
 	var result []models.BatchResponse
-	baseURL := env.Flags.B
+	baseURL := app.Flags.B
 	dec := json.NewDecoder(r.Body)
 	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 
@@ -27,7 +27,7 @@ func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, env *config.Env
 	}
 
 	if len(req) == 0 {
-		http.Error(w, "empty response", http.StatusBadRequest)
+		http.Error(w, "empty request", http.StatusBadRequest)
 		return
 	}
 
@@ -39,7 +39,7 @@ func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, env *config.Env
 		}
 
 		id, _ := generator.GetRandomStr(10)
-		short, saveErr := env.Store.AddValue(r.Context(), store.AddValueOptions{
+		short, saveErr := app.Store.AddValue(r.Context(), store.AddValueOptions{
 			Original: parsedURL.String(),
 			BaseURL:  baseURL,
 			Short:    id,
