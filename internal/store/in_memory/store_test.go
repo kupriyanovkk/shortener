@@ -95,7 +95,7 @@ func TestStore_GetValue(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.description, func(t *testing.T) {
 			_, _ = store.AddValue(context.Background(), testCase.addOpts)
-			url, err := store.GetValue(context.Background(), testCase.short)
+			url, err := store.GetOriginalURL(context.Background(), testCase.short)
 
 			if err != nil && testCase.expectedErr == nil {
 				t.Errorf("Expected no error, but got an error: %v", err)

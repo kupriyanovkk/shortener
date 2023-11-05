@@ -6,12 +6,16 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 )
 
-func GetID(w http.ResponseWriter, r *http.Request, env *config.Env) {
+func GetID(w http.ResponseWriter, r *http.Request, app *config.App) {
 	id := r.URL.String()
-	origURL, err := env.Store.GetValue(r.Context(), id[1:])
+	origURL, err := app.Store.GetOriginalURL(r.Context(), id[1:])
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		if err.Error() == "URL is deleted" {
+			http.Error(w, err.Error(), http.StatusGone)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
 		return
 	}
 

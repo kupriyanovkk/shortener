@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/store"
 )
 
@@ -64,25 +65,30 @@ func TestAddValue(t *testing.T) {
 }
 
 func TestGetValue(t *testing.T) {
+	values := make(map[string]models.URL)
+	values["abc"] = models.URL{
+		Short:    "abc",
+		Original: "https://example.com",
+		UserID:   "123",
+	}
+
 	testCases := []struct {
 		description string
-		storeValues map[string]string
+		storeValues map[string]models.URL
 		short       string
 		expectedURL string
 		expectedErr error
 	}{
 		{
 			description: "Get existing value",
-			storeValues: map[string]string{
-				"abc": "https://example.com",
-			},
+			storeValues: values,
 			short:       "abc",
 			expectedURL: "https://example.com",
 			expectedErr: nil,
 		},
 		{
 			description: "Get non-existing value",
-			storeValues: map[string]string{},
+			storeValues: make(map[string]models.URL),
 			short:       "def",
 			expectedURL: "",
 			expectedErr: fmt.Errorf("value doesn't exist by key %s", "def"),
@@ -92,7 +98,7 @@ func TestGetValue(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.description, func(t *testing.T) {
 			store := Store{values: testCase.storeValues}
-			url, err := store.GetValue(context.Background(), testCase.short)
+			url, err := store.GetOriginalURL(context.Background(), testCase.short)
 
 			if err != nil && testCase.expectedErr == nil {
 				t.Errorf("Expected no error, but got an error: %v", err)
@@ -111,10 +117,24 @@ func TestGetValue(t *testing.T) {
 
 func TestReadValuesFromFile(t *testing.T) {
 	var errParsingJSON = errors.New("unexpected end of JSON input")
+	values := make(map[string]models.URL)
+	values["abc"] = models.URL{
+		UUID:     1,
+		Short:    "abc",
+		Original: "https://example.com",
+		UserID:   "123",
+	}
+	values["def"] = models.URL{
+		UUID:     2,
+		Short:    "def",
+		Original: "https://example.org",
+		UserID:   "123",
+	}
+
 	testCases := []struct {
 		name     string
 		input    string
-		expected map[string]string
+		expected map[string]models.URL
 		err      error
 	}{
 		{
@@ -126,13 +146,10 @@ func TestReadValuesFromFile(t *testing.T) {
 		{
 			name: "Read from valid JSON file",
 			input: `
-			{"uuid": 1, "short_url": "abc", "original_url": "https://example.com"}
-			{"uuid": 2, "short_url": "def", "original_url": "https://example.org"}`,
-			expected: map[string]string{
-				"abc": "https://example.com",
-				"def": "https://example.org",
-			},
-			err: nil,
+			{"uuid": 1, "short_url": "abc", "original_url": "https://example.com", "user_id": "123"}
+			{"uuid": 2, "short_url": "def", "original_url": "https://example.org", "user_id": "123"}`,
+			expected: values,
+			err:      nil,
 		},
 		{
 			name: "Error while parsing JSON",
@@ -160,7 +177,7 @@ func TestReadValuesFromFile(t *testing.T) {
 	}
 }
 
-func compareStringMaps(a, b map[string]string) bool {
+func compareStringMaps(a, b map[string]models.URL) bool {
 	if len(a) != len(b) {
 		return false
 	}

@@ -14,12 +14,12 @@ import (
 
 var uuid = 0
 
-func ReadValuesFromFile(scanner *bufio.Scanner) (map[string]string, error) {
+func ReadValuesFromFile(scanner *bufio.Scanner) (map[string]models.URL, error) {
 	if !scanner.Scan() {
 		return nil, scanner.Err()
 	}
 
-	values := make(map[string]string)
+	values := make(map[string]models.URL)
 	for scanner.Scan() {
 		value := models.URL{}
 		err := json.Unmarshal(scanner.Bytes(), &value)
@@ -27,21 +27,25 @@ func ReadValuesFromFile(scanner *bufio.Scanner) (map[string]string, error) {
 			return nil, err
 		}
 		uuid = value.UUID
-		values[value.Short] = value.Original
+		values[value.Short] = value
 	}
 
 	return values, nil
 }
 
 type Store struct {
-	values map[string]string
+	values map[string]models.URL
 	file   *os.File
 	writer *bufio.Writer
 }
 
-func (s Store) GetValue(ctx context.Context, short string) (string, error) {
+func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error) {
 	if value, ok := s.values[short]; ok {
-		return value, nil
+		if value.DeletedFlag {
+			return "", errors.New("URL is deleted")
+		}
+
+		return value.Original, nil
 	}
 
 	return "", fmt.Errorf("value doesn't exist by key %s", short)
@@ -52,14 +56,19 @@ func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string
 		return "", errors.New("original URL cannot be empty")
 	}
 
-	s.values[opts.Short] = opts.Original
 	result := fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short)
 	uuid += 1
-	if err := s.WriteValue(&models.URL{
-		UUID:     uuid,
-		Short:    opts.Short,
-		Original: opts.Original,
-	}); err != nil {
+
+	v := models.URL{
+		UUID:        uuid,
+		Short:       opts.Short,
+		Original:    opts.Original,
+		UserID:      opts.UserID,
+		DeletedFlag: false,
+	}
+	s.values[opts.Short] = v
+
+	if err := s.WriteValue(&v); err != nil {
 		return result, err
 	}
 
@@ -88,6 +97,41 @@ func (s Store) Ping() error {
 	return nil
 }
 
+func (s Store) GetUserURLs(ctx context.Context, opts store.GetUserURLsOptions) ([]models.UserURL, error) {
+	result := make([]models.UserURL, 0, 100)
+	for _, value := range s.values {
+		if value.UserID == opts.UserID {
+			result = append(result, models.UserURL{
+				Short:    fmt.Sprintf("%s/%s", opts.BaseURL, value.Short),
+				Original: value.Original,
+			})
+		}
+	}
+
+	return result, nil
+}
+
+func (s Store) DeleteURLs(ctx context.Context, opts []store.DeletedURLs) error {
+	for _, o := range opts {
+		for _, value := range s.values {
+			if value.UserID == o.UserID {
+				for _, u := range o.URLs {
+					if u == value.Short {
+						s.values[value.Short] = models.URL{
+							Short:       value.Short,
+							Original:    value.Original,
+							UserID:      value.UserID,
+							DeletedFlag: true,
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func NewStore(filename string) store.Store {
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -101,7 +145,7 @@ func NewStore(filename string) store.Store {
 	}
 
 	if len(values) == 0 {
-		values = make(map[string]string)
+		values = make(map[string]models.URL)
 	}
 
 	return Store{

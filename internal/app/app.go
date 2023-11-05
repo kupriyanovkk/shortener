@@ -17,40 +17,58 @@ func Start() {
 	r := chi.NewRouter()
 	f := config.ParseFlags()
 
-	var store store.Store
+	var Store store.Store
 	if f.D != "" {
-		store = db.NewStore(f.D)
+		Store = db.NewStore(f.D)
 	} else if f.F != "" {
-		store = infile.NewStore(f.F)
+		Store = infile.NewStore(f.F)
 	} else {
-		store = inmemory.NewStore()
+		Store = inmemory.NewStore()
 	}
 
-	env := &config.Env{Flags: f, Store: store}
+	app := &config.App{
+		Flags: f,
+		Store: Store,
+		URLChan: make(chan store.DeletedURLs, 10),
+	}
+
+	go handlers.FlushDeletedURLs(app)
 
 	r.Use(
 		middlewares.Logger,
 		middlewares.Gzip,
+		middlewares.Auth,
 	)
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetID(w, r, env)
+		handlers.GetID(w, r, app)
 	})
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostRoot(w, r, env)
+		handlers.PostRoot(w, r, app)
 	})
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/shorten", func(r chi.Router) {
 			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-				handlers.PostAPIShorten(w, r, env)
+				handlers.PostAPIShorten(w, r, app)
 			})
 
 			r.Post("/batch", func(w http.ResponseWriter, r *http.Request) {
-				handlers.PostAPIShortenBatch(w, r, env)
+				handlers.PostAPIShortenBatch(w, r, app)
+			})
+		})
+
+		r.Route("/user", func(r chi.Router) {
+			r.Route("/urls", func(r chi.Router) {
+				r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+					handlers.GetAPIUserURLs(w, r, app)
+				})
+				r.Delete("/", func(w http.ResponseWriter, r *http.Request) {
+					handlers.DeleteAPIUserURLs(w, r, app)
+				})
 			})
 		})
 	})
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetPing(w, r, env)
+		handlers.GetPing(w, r, app)
 	})
 
 	err := http.ListenAndServe(f.A, r)

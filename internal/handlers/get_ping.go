@@ -6,8 +6,8 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 )
 
-func GetPing(w http.ResponseWriter, r *http.Request, env *config.Env) {
-	err := env.Store.Ping()
+func GetPing(w http.ResponseWriter, r *http.Request, app *config.App) {
+	err := app.Store.Ping()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

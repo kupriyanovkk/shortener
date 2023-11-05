@@ -2,18 +2,21 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
 	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/contextkey"
 	"github.com/kupriyanovkk/shortener/internal/generator"
 	"github.com/kupriyanovkk/shortener/internal/store"
 )
 
-func PostRoot(w http.ResponseWriter, r *http.Request, env *config.Env) {
+func PostRoot(w http.ResponseWriter, r *http.Request, app *config.App) {
 	body, err := io.ReadAll(r.Body)
-	baseURL := env.Flags.B
+	baseURL := app.Flags.B
+	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
@@ -31,10 +34,11 @@ func PostRoot(w http.ResponseWriter, r *http.Request, env *config.Env) {
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	short, saveErr := env.Store.AddValue(r.Context(), store.AddValueOptions{
+	short, saveErr := app.Store.AddValue(r.Context(), store.AddValueOptions{
 		Original: parsedURL.String(),
 		BaseURL:  baseURL,
 		Short:    id,
+		UserID:   userID,
 	})
 
 	if errors.Is(saveErr, store.ErrConflict) {
