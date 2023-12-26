@@ -9,13 +9,14 @@ import (
 
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/contextkey"
+	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/generator"
-	"github.com/kupriyanovkk/shortener/internal/store"
+	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
 func PostRoot(w http.ResponseWriter, r *http.Request, app *config.App) {
 	body, err := io.ReadAll(r.Body)
-	baseURL := app.Flags.B
+	baseURL := app.Flags.BaseURL
 	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 
 	if err != nil {
@@ -34,14 +35,14 @@ func PostRoot(w http.ResponseWriter, r *http.Request, app *config.App) {
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	short, saveErr := app.Store.AddValue(r.Context(), store.AddValueOptions{
+	short, saveErr := app.Store.AddValue(r.Context(), models.AddValueOptions{
 		Original: parsedURL.String(),
 		BaseURL:  baseURL,
 		Short:    id,
 		UserID:   userID,
 	})
 
-	if errors.Is(saveErr, store.ErrConflict) {
+	if errors.Is(saveErr, failure.ErrConflict) {
 		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)

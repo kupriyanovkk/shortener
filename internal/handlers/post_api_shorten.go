@@ -9,15 +9,15 @@ import (
 
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/contextkey"
+	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/generator"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/store"
 )
 
 func PostAPIShorten(w http.ResponseWriter, r *http.Request, app *config.App) {
 	var req models.Request
 	dec := json.NewDecoder(r.Body)
-	baseURL := app.Flags.B
+	baseURL := app.Flags.BaseURL
 	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 
 	if err := dec.Decode(&req); err != nil {
@@ -32,7 +32,7 @@ func PostAPIShorten(w http.ResponseWriter, r *http.Request, app *config.App) {
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	short, saveErr := app.Store.AddValue(r.Context(), store.AddValueOptions{
+	short, saveErr := app.Store.AddValue(r.Context(), models.AddValueOptions{
 		Original: parsedURL.String(),
 		BaseURL:  baseURL,
 		Short:    id,
@@ -43,7 +43,7 @@ func PostAPIShorten(w http.ResponseWriter, r *http.Request, app *config.App) {
 		Result: short,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	if errors.Is(saveErr, store.ErrConflict) {
+	if errors.Is(saveErr, failure.ErrConflict) {
 		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)

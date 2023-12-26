@@ -7,13 +7,13 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgerrcode"
+	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/store"
 	"github.com/lib/pq"
 )
 
 type Store struct {
-	db store.DatabaseConnection
+	db models.DatabaseConnection
 }
 
 func (s Store) Bootstrap(ctx context.Context) error {
@@ -41,7 +41,7 @@ func (s Store) Bootstrap(ctx context.Context) error {
 
 func (s Store) FindOriginalURL(ctx context.Context, short string) (models.URL, error) {
 	var (
-		original   string
+		original  string
 		isDeleted bool
 	)
 	row := s.db.QueryRowContext(ctx, `SELECT original, is_deleted FROM shortener WHERE short = $1`, short)
@@ -70,7 +70,7 @@ func (s Store) InsertURL(ctx context.Context, short, original, userID string) er
 	if err != nil {
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			err = store.ErrConflict
+			err = failure.ErrConflict
 		}
 	}
 
@@ -87,14 +87,14 @@ func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error)
 	return URL.Original, err
 }
 
-func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string, error) {
+func (s Store) AddValue(ctx context.Context, opts models.AddValueOptions) (string, error) {
 	if opts.Original == "" {
-		return "", errors.New("original URL cannot be empty")
+		return "", failure.ErrEmptyOrigURL
 	}
 
 	err := s.InsertURL(ctx, opts.Short, opts.Original, opts.UserID)
 
-	if err != nil && errors.Is(err, store.ErrConflict) {
+	if err != nil && errors.Is(err, failure.ErrConflict) {
 		short, _ := s.FindShortURL(ctx, opts.Original)
 		result := fmt.Sprintf("%s/%s", opts.BaseURL, short)
 
@@ -104,7 +104,7 @@ func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string
 	return fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short), nil
 }
 
-func (s Store) GetUserURLs(ctx context.Context, opts store.GetUserURLsOptions) ([]models.UserURL, error) {
+func (s Store) GetUserURLs(ctx context.Context, opts models.GetUserURLsOptions) ([]models.UserURL, error) {
 	limit := 100
 	result := make([]models.UserURL, 0, limit)
 
@@ -136,7 +136,7 @@ func (s Store) GetUserURLs(ctx context.Context, opts store.GetUserURLsOptions) (
 	return result, nil
 }
 
-func (s Store) DeleteURLs(ctx context.Context, opts []store.DeletedURLs) error {
+func (s Store) DeleteURLs(ctx context.Context, opts []models.DeletedURLs) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -146,7 +146,7 @@ func (s Store) DeleteURLs(ctx context.Context, opts []store.DeletedURLs) error {
 
 	for _, o := range opts {
 		for _, u := range o.URLs {
-			_, err := s.db.ExecContext(ctx, `
+			_, err := tx.ExecContext(ctx, `
 			UPDATE shortener SET is_deleted = TRUE
 				WHERE short = $1 AND user_id = $2
 		`, u, o.UserID)
@@ -166,7 +166,7 @@ func (s Store) Ping() error {
 	return err
 }
 
-func NewStore(dbDSN string) store.Store {
+func NewStore(dbDSN string) models.Store {
 	db, err := sql.Open("postgres", dbDSN)
 	if err != nil {
 		panic(err)

@@ -3,49 +3,50 @@ package app
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/middlewares"
-	"github.com/kupriyanovkk/shortener/internal/store"
+	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/store/db"
 	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
 	inmemory "github.com/kupriyanovkk/shortener/internal/store/in_memory"
 )
 
 func Start() {
-	r := chi.NewRouter()
-	f := config.ParseFlags()
+	router := chi.NewRouter()
+	flags := config.ParseFlags()
 
-	var Store store.Store
-	if f.D != "" {
-		Store = db.NewStore(f.D)
-	} else if f.F != "" {
-		Store = infile.NewStore(f.F)
+	var Store models.Store
+	if flags.DatabaseDSN != "" {
+		Store = db.NewStore(flags.DatabaseDSN)
+	} else if flags.FileStoragePath != "" {
+		Store = infile.NewStore(flags.FileStoragePath)
 	} else {
 		Store = inmemory.NewStore()
 	}
 
 	app := &config.App{
-		Flags: f,
-		Store: Store,
-		URLChan: make(chan store.DeletedURLs, 10),
+		Flags:   flags,
+		Store:   Store,
+		URLChan: make(chan models.DeletedURLs, 10),
 	}
 
 	go handlers.FlushDeletedURLs(app)
 
-	r.Use(
+	router.Use(
 		middlewares.Logger,
 		middlewares.Gzip,
 		middlewares.Auth,
 	)
-	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetID(w, r, app)
 	})
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	router.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		handlers.PostRoot(w, r, app)
 	})
-	r.Route("/api", func(r chi.Router) {
+	router.Route("/api", func(r chi.Router) {
 		r.Route("/shorten", func(r chi.Router) {
 			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 				handlers.PostAPIShorten(w, r, app)
@@ -67,11 +68,13 @@ func Start() {
 			})
 		})
 	})
-	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetPing(w, r, app)
 	})
 
-	err := http.ListenAndServe(f.A, r)
+	router.Mount("/debug", middleware.Profiler())
+
+	err := http.ListenAndServe(flags.ServerAddress, router)
 	if err != nil {
 		panic(err)
 	}

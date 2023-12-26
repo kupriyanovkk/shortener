@@ -8,7 +8,7 @@ import (
 
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/contextkey"
-	"github.com/kupriyanovkk/shortener/internal/store"
+	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
 func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
@@ -20,9 +20,9 @@ func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
 		return
 	}
 
-	URLs, err := app.Store.GetUserURLs(r.Context(), store.GetUserURLsOptions{
+	URLs, err := app.Store.GetUserURLs(r.Context(), models.GetUserURLsOptions{
 		UserID:  userID,
-		BaseURL: app.Flags.B,
+		BaseURL: app.Flags.BaseURL,
 	})
 
 	if err != nil {
