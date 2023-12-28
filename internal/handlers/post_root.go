@@ -14,6 +14,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
+// PostRoot process request for root address.
 func PostRoot(w http.ResponseWriter, r *http.Request, app *config.App) {
 	body, err := io.ReadAll(r.Body)
 	baseURL := app.Flags.BaseURL

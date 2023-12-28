@@ -7,6 +7,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
+// ConfigFlags contains flags for app.
 type ConfigFlags struct {
 	ServerAddress   string
 	BaseURL         string
@@ -14,6 +15,7 @@ type ConfigFlags struct {
 	DatabaseDSN     string
 }
 
+// ParseFlags using for parsing and getting environment variables.
 func ParseFlags() ConfigFlags {
 	var runAddress string
 	var baseURL string
@@ -47,6 +49,7 @@ func ParseFlags() ConfigFlags {
 	}
 }
 
+// App structure contains flags, store and URLchan.
 type App struct {
 	Flags   ConfigFlags
 	Store   models.Store

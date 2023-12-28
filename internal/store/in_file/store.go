@@ -14,6 +14,7 @@ import (
 
 var uuid = 0
 
+// ReadValuesFromFile return value from storage file
 func ReadValuesFromFile(scanner *bufio.Scanner) (map[string]models.URL, error) {
 	if !scanner.Scan() {
 		return nil, scanner.Err()
@@ -33,12 +34,14 @@ func ReadValuesFromFile(scanner *bufio.Scanner) (map[string]models.URL, error) {
 	return values, nil
 }
 
+// Store structure
 type Store struct {
 	values map[string]models.URL
 	file   *os.File
 	writer *bufio.Writer
 }
 
+// GetOriginalURL using for search original URL by short.
 func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error) {
 	if value, ok := s.values[short]; ok {
 		if value.DeletedFlag {
@@ -51,6 +54,7 @@ func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error)
 	return "", fmt.Errorf("value doesn't exist by key %s", short)
 }
 
+// AddValue adding new URL into database.
 func (s Store) AddValue(ctx context.Context, opts models.AddValueOptions) (string, error) {
 	if opts.Original == "" {
 		return "", failure.ErrEmptyOrigURL
@@ -75,6 +79,7 @@ func (s Store) AddValue(ctx context.Context, opts models.AddValueOptions) (strin
 	return fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short), nil
 }
 
+// WriteValue writing value to storage file.
 func (s *Store) WriteValue(value *models.URL) error {
 	data, err := json.Marshal(&value)
 
@@ -93,10 +98,12 @@ func (s *Store) WriteValue(value *models.URL) error {
 	return s.writer.Flush()
 }
 
+// Ping checks database connection.
 func (s Store) Ping() error {
 	return nil
 }
 
+// GetUserURLs returning all URLs by particular user.
 func (s Store) GetUserURLs(ctx context.Context, opts models.GetUserURLsOptions) ([]models.UserURL, error) {
 	result := make([]models.UserURL, 0, 100)
 	for _, value := range s.values {
@@ -111,6 +118,7 @@ func (s Store) GetUserURLs(ctx context.Context, opts models.GetUserURLsOptions) 
 	return result, nil
 }
 
+// DeleteURLs marked URLs as deleted.
 func (s Store) DeleteURLs(ctx context.Context, opts []models.DeletedURLs) error {
 	for _, o := range opts {
 		for _, value := range s.values {
@@ -132,6 +140,7 @@ func (s Store) DeleteURLs(ctx context.Context, opts []models.DeletedURLs) error 
 	return nil
 }
 
+// NewStore return Store for working with file.
 func NewStore(filename string) models.Store {
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {

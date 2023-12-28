@@ -12,10 +12,13 @@ import (
 	"github.com/lib/pq"
 )
 
+// Store structure
 type Store struct {
 	db models.DatabaseConnection
 }
 
+// Bootstrap function create table shortener and
+// set unique index for 'original' field.
 func (s Store) Bootstrap(ctx context.Context) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -39,6 +42,7 @@ func (s Store) Bootstrap(ctx context.Context) error {
 	return tx.Commit()
 }
 
+// FindOriginalURL using for search original URL by short.
 func (s Store) FindOriginalURL(ctx context.Context, short string) (models.URL, error) {
 	var (
 		original  string
@@ -53,12 +57,14 @@ func (s Store) FindOriginalURL(ctx context.Context, short string) (models.URL, e
 	}, err
 }
 
+// FindShortURL using for search short URL by original.
 func (s Store) FindShortURL(ctx context.Context, original string) (shortURL string, err error) {
 	row := s.db.QueryRowContext(ctx, `SELECT short FROM shortener WHERE original = $1`, original)
 	err = row.Scan(&shortURL)
 	return
 }
 
+// InsertURL inserts new URL into a table.
 func (s Store) InsertURL(ctx context.Context, short, original, userID string) error {
 	_, err := s.db.ExecContext(ctx, `
 			INSERT INTO shortener
@@ -77,6 +83,7 @@ func (s Store) InsertURL(ctx context.Context, short, original, userID string) er
 	return err
 }
 
+// GetOriginalURL using for search original URL by short.
 func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error) {
 	URL, err := s.FindOriginalURL(ctx, short)
 
@@ -87,6 +94,7 @@ func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error)
 	return URL.Original, err
 }
 
+// AddValue adding new URL into database.
 func (s Store) AddValue(ctx context.Context, opts models.AddValueOptions) (string, error) {
 	if opts.Original == "" {
 		return "", failure.ErrEmptyOrigURL
@@ -104,6 +112,7 @@ func (s Store) AddValue(ctx context.Context, opts models.AddValueOptions) (strin
 	return fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short), nil
 }
 
+// GetUserURLs returning all URLs by particular user.
 func (s Store) GetUserURLs(ctx context.Context, opts models.GetUserURLsOptions) ([]models.UserURL, error) {
 	limit := 100
 	result := make([]models.UserURL, 0, limit)
@@ -136,6 +145,7 @@ func (s Store) GetUserURLs(ctx context.Context, opts models.GetUserURLsOptions) 
 	return result, nil
 }
 
+// DeleteURLs marked URLs as deleted.
 func (s Store) DeleteURLs(ctx context.Context, opts []models.DeletedURLs) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -161,11 +171,13 @@ func (s Store) DeleteURLs(ctx context.Context, opts []models.DeletedURLs) error 
 	return tx.Commit()
 }
 
+// Ping checks database connection.
 func (s Store) Ping() error {
 	err := s.db.Ping()
 	return err
 }
 
+// NewStore return Store for working with DB
 func NewStore(dbDSN string) models.Store {
 	db, err := sql.Open("postgres", dbDSN)
 	if err != nil {

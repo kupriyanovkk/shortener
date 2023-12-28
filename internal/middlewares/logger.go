@@ -19,17 +19,20 @@ type (
 	}
 )
 
+// Write method write values to responseData
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size
 	return size, err
 }
 
+// WriteHeader set status code to responseData
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
 }
 
+// Logger is middleware for logging requests data.
 func Logger(h http.Handler) http.Handler {
 	logger, err := zap.NewDevelopment()
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
+// PostAPIShorten process requests for shorten URL.
 func PostAPIShorten(w http.ResponseWriter, r *http.Request, app *config.App) {
 	var req models.Request
 	dec := json.NewDecoder(r.Body)

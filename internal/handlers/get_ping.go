@@ -6,6 +6,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 )
 
+// GetPing process request for ping DB.
 func GetPing(w http.ResponseWriter, r *http.Request, app *config.App) {
 	err := app.Store.Ping()
 	if err != nil {

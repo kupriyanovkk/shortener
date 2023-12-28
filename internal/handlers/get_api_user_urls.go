@@ -11,6 +11,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
+// GetAPIUserURLs processes requests for getting user URLs
 func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
 	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 	_, err := r.Cookie("UserID")

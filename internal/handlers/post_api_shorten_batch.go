@@ -14,6 +14,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
+// PostAPIShortenBatch process requests for shorten URLs by batches.
 func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, app *config.App) {
 	var req []models.BatchRequest
 	var result []models.BatchResponse

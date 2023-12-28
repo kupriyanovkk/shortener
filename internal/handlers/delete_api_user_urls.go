@@ -13,6 +13,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
+// DeleteAPIUserURLs processes requests for deleting user URLs.
 func DeleteAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
 	var URLs []string
 	dec := json.NewDecoder(r.Body)
@@ -43,6 +44,7 @@ func DeleteAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) 
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// FlushDeletedURLs reading URLChan and processing URLs.
 func FlushDeletedURLs(app *config.App) {
 	ticker := time.NewTicker(10 * time.Second)
 

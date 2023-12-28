@@ -14,6 +14,8 @@ import (
 	inmemory "github.com/kupriyanovkk/shortener/internal/store/in_memory"
 )
 
+// Start it function witch init all API handlers,
+// and init Storage.
 func Start() {
 	router := chi.NewRouter()
 	flags := config.ParseFlags()
