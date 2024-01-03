@@ -12,6 +12,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/generator"
 	"github.com/kupriyanovkk/shortener/internal/models"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 // PostAPIShortenBatch process requests for shorten URLs by batches.
@@ -40,7 +41,7 @@ func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, app *config.App
 		}
 
 		id, _ := generator.GetRandomStr(10)
-		short, saveErr := app.Store.AddValue(r.Context(), models.AddValueOptions{
+		short, saveErr := app.Store.AddValue(r.Context(), storeInterface.AddValueOptions{
 			Original: parsedURL.String(),
 			BaseURL:  baseURL,
 			Short:    id,

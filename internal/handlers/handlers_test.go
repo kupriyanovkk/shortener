@@ -11,6 +11,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/models"
 	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,7 +68,7 @@ func TestGetID(t *testing.T) {
 		id := "abc123"
 		s := infile.NewStore(f.FileStoragePath)
 		env := &config.App{Flags: f, Store: s}
-		s.AddValue(context.Background(), models.AddValueOptions{
+		s.AddValue(context.Background(), storeInterface.AddValueOptions{
 			Short:    id,
 			Original: "http://example.com",
 			BaseURL:  defaultURL,

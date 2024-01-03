@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/kupriyanovkk/shortener/internal/models"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 // ConfigFlags contains flags for app.
@@ -52,6 +52,6 @@ func ParseFlags() ConfigFlags {
 // App structure contains flags, store and URLchan.
 type App struct {
 	Flags   ConfigFlags
-	Store   models.Store
-	URLChan chan models.DeletedURLs
+	Store   storeInterface.Store
+	URLChan chan storeInterface.DeletedURLs
 }

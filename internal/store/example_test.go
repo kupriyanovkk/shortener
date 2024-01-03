@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kupriyanovkk/shortener/internal/models"
 	inmemory "github.com/kupriyanovkk/shortener/internal/store/in_memory"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 func Example() {
 	store := inmemory.NewStore()
 
-	shortURL, _ := store.AddValue(context.Background(), models.AddValueOptions{
+	shortURL, _ := store.AddValue(context.Background(), storeInterface.AddValueOptions{
 		Original: "https://example.com",
 		Short:    "abc",
 		BaseURL:  "https://short.ly",

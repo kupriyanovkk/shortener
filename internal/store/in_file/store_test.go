@@ -11,6 +11,7 @@ import (
 
 	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/models"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 func TestAddValue(t *testing.T) {
@@ -18,14 +19,14 @@ func TestAddValue(t *testing.T) {
 	testCases := []struct {
 		description string
 		filename    string
-		opts        models.AddValueOptions
+		opts        storeInterface.AddValueOptions
 		expectedURL string
 		expectedErr error
 	}{
 		{
 			description: "Add valid value",
 			filename:    fileName,
-			opts: models.AddValueOptions{
+			opts: storeInterface.AddValueOptions{
 				Original: "https://example.com",
 				Short:    "abc",
 				BaseURL:  "https://short.ly",
@@ -36,7 +37,7 @@ func TestAddValue(t *testing.T) {
 		{
 			description: "Add value with empty Original",
 			filename:    fileName,
-			opts: models.AddValueOptions{
+			opts: storeInterface.AddValueOptions{
 				Original: "",
 				Short:    "def",
 				BaseURL:  "https://short.ly",

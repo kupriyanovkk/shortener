@@ -11,7 +11,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/contextkey"
 	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/generator"
-	"github.com/kupriyanovkk/shortener/internal/models"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 // PostRoot process request for root address.
@@ -36,7 +36,7 @@ func PostRoot(w http.ResponseWriter, r *http.Request, app *config.App) {
 	}
 
 	id, _ := generator.GetRandomStr(10)
-	short, saveErr := app.Store.AddValue(r.Context(), models.AddValueOptions{
+	short, saveErr := app.Store.AddValue(r.Context(), storeInterface.AddValueOptions{
 		Original: parsedURL.String(),
 		BaseURL:  baseURL,
 		Short:    id,

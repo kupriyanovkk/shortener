@@ -10,7 +10,7 @@ import (
 
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/contextkey"
-	"github.com/kupriyanovkk/shortener/internal/models"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 // DeleteAPIUserURLs processes requests for deleting user URLs.
@@ -35,7 +35,7 @@ func DeleteAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) 
 		return
 	}
 
-	app.URLChan <- models.DeletedURLs{
+	app.URLChan <- storeInterface.DeletedURLs{
 		UserID: userID,
 		URLs:   URLs,
 	}
@@ -48,7 +48,7 @@ func DeleteAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) 
 func FlushDeletedURLs(app *config.App) {
 	ticker := time.NewTicker(10 * time.Second)
 
-	var URLs []models.DeletedURLs
+	var URLs []storeInterface.DeletedURLs
 
 	for {
 		select {

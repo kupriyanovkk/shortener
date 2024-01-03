@@ -6,19 +6,19 @@ import (
 	"testing"
 
 	"github.com/kupriyanovkk/shortener/internal/failure"
-	"github.com/kupriyanovkk/shortener/internal/models"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 func TestAddValue(t *testing.T) {
 	testCases := []struct {
 		description string
-		opts        models.AddValueOptions
+		opts        storeInterface.AddValueOptions
 		expectedURL string
 		expectedErr error
 	}{
 		{
 			description: "Add valid value",
-			opts: models.AddValueOptions{
+			opts: storeInterface.AddValueOptions{
 				Original: "https://example.com",
 				Short:    "abc",
 				BaseURL:  "https://short.ly",
@@ -28,7 +28,7 @@ func TestAddValue(t *testing.T) {
 		},
 		{
 			description: "Add value with empty Original",
-			opts: models.AddValueOptions{
+			opts: storeInterface.AddValueOptions{
 				Original: "",
 				Short:    "def",
 				BaseURL:  "https://short.ly",
@@ -62,14 +62,14 @@ func TestAddValue(t *testing.T) {
 func TestStore_GetValue(t *testing.T) {
 	testCases := []struct {
 		description string
-		addOpts     models.AddValueOptions
+		addOpts     storeInterface.AddValueOptions
 		short       string
 		expectedURL string
 		expectedErr error
 	}{
 		{
 			description: "Get existing value",
-			addOpts: models.AddValueOptions{
+			addOpts: storeInterface.AddValueOptions{
 				Original: "https://example.com",
 				Short:    "abc",
 				BaseURL:  "https://short.ly",
@@ -80,7 +80,7 @@ func TestStore_GetValue(t *testing.T) {
 		},
 		{
 			description: "Get non-existing value",
-			addOpts: models.AddValueOptions{
+			addOpts: storeInterface.AddValueOptions{
 				Original: "https://example.com",
 				Short:    "abc",
 				BaseURL:  "https://short.ly",

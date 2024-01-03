@@ -8,10 +8,10 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/middlewares"
-	"github.com/kupriyanovkk/shortener/internal/models"
 	"github.com/kupriyanovkk/shortener/internal/store/db"
 	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
 	inmemory "github.com/kupriyanovkk/shortener/internal/store/in_memory"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 // Start it function witch init all API handlers,
@@ -20,7 +20,7 @@ func Start() {
 	router := chi.NewRouter()
 	flags := config.ParseFlags()
 
-	var Store models.Store
+	var Store storeInterface.Store
 	if flags.DatabaseDSN != "" {
 		Store = db.NewStore(flags.DatabaseDSN)
 	} else if flags.FileStoragePath != "" {
@@ -32,7 +32,7 @@ func Start() {
 	app := &config.App{
 		Flags:   flags,
 		Store:   Store,
-		URLChan: make(chan models.DeletedURLs, 10),
+		URLChan: make(chan storeInterface.DeletedURLs, 10),
 	}
 
 	go handlers.FlushDeletedURLs(app)

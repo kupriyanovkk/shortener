@@ -9,12 +9,13 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/models"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 	"github.com/lib/pq"
 )
 
 // Store structure
 type Store struct {
-	db models.DatabaseConnection
+	db storeInterface.DatabaseConnection
 }
 
 // Bootstrap function create table shortener and
@@ -95,7 +96,7 @@ func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error)
 }
 
 // AddValue adding new URL into database.
-func (s Store) AddValue(ctx context.Context, opts models.AddValueOptions) (string, error) {
+func (s Store) AddValue(ctx context.Context, opts storeInterface.AddValueOptions) (string, error) {
 	if opts.Original == "" {
 		return "", failure.ErrEmptyOrigURL
 	}
@@ -113,7 +114,7 @@ func (s Store) AddValue(ctx context.Context, opts models.AddValueOptions) (strin
 }
 
 // GetUserURLs returning all URLs by particular user.
-func (s Store) GetUserURLs(ctx context.Context, opts models.GetUserURLsOptions) ([]models.UserURL, error) {
+func (s Store) GetUserURLs(ctx context.Context, opts storeInterface.GetUserURLsOptions) ([]models.UserURL, error) {
 	limit := 100
 	result := make([]models.UserURL, 0, limit)
 
@@ -146,7 +147,7 @@ func (s Store) GetUserURLs(ctx context.Context, opts models.GetUserURLsOptions) 
 }
 
 // DeleteURLs marked URLs as deleted.
-func (s Store) DeleteURLs(ctx context.Context, opts []models.DeletedURLs) error {
+func (s Store) DeleteURLs(ctx context.Context, opts []storeInterface.DeletedURLs) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -178,7 +179,7 @@ func (s Store) Ping() error {
 }
 
 // NewStore return Store for working with DB
-func NewStore(dbDSN string) models.Store {
+func NewStore(dbDSN string) storeInterface.Store {
 	db, err := sql.Open("postgres", dbDSN)
 	if err != nil {
 		panic(err)

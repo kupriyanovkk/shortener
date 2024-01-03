@@ -7,6 +7,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/models"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 func TestAddValue(t *testing.T) {
@@ -99,7 +100,7 @@ func TestAddValue(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.dbExpectation(tc.short, tc.original, tc.user)
 
-			url, err := storage.AddValue(context.Background(), models.AddValueOptions{
+			url, err := storage.AddValue(context.Background(), storeInterface.AddValueOptions{
 				Original: tc.original,
 				BaseURL:  "https://example.com",
 				Short:    tc.short,
@@ -196,7 +197,7 @@ func TestGetUserURLs(t *testing.T) {
 
 	userID := "testUserID"
 	baseURL := "http://example.com"
-	opts := models.GetUserURLsOptions{
+	opts := storeInterface.GetUserURLsOptions{
 		UserID:  userID,
 		BaseURL: baseURL,
 	}
