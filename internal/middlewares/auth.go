@@ -11,6 +11,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/random"
 )
 
+// Auth is middleware for checking user authorization.
 func Auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, _ := random.Generate(10)

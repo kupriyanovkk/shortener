@@ -3,11 +3,11 @@ package store
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/kupriyanovkk/shortener/internal/models"
 )
 
+// Store interface for storage working
 type Store interface {
 	GetOriginalURL(ctx context.Context, short string) (string, error)
 	AddValue(ctx context.Context, opts AddValueOptions) (string, error)
@@ -16,8 +16,7 @@ type Store interface {
 	DeleteURLs(ctx context.Context, opts []DeletedURLs) error
 }
 
-var ErrConflict = errors.New("data conflict")
-
+// AddValueOptions is a structure for AddValue method params
 type AddValueOptions struct {
 	Original string
 	BaseURL  string
@@ -25,16 +24,19 @@ type AddValueOptions struct {
 	UserID   string
 }
 
+// GetUserURLsOptions is a structure for getting user URLs
 type GetUserURLsOptions struct {
 	UserID  string
 	BaseURL string
 }
 
+// DeletedURLs is a structure for deleting URLs
 type DeletedURLs struct {
 	UserID string
 	URLs   []string
 }
 
+// Database interface
 type DatabaseConnection interface {
 	Ping() error
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)

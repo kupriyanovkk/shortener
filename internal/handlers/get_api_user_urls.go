@@ -8,9 +8,10 @@ import (
 
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/contextkey"
-	"github.com/kupriyanovkk/shortener/internal/store"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
+// GetAPIUserURLs processes requests for getting user URLs
 func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
 	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 	_, err := r.Cookie("UserID")
@@ -20,9 +21,9 @@ func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
 		return
 	}
 
-	URLs, err := app.Store.GetUserURLs(r.Context(), store.GetUserURLsOptions{
+	URLs, err := app.Store.GetUserURLs(r.Context(), storeInterface.GetUserURLsOptions{
 		UserID:  userID,
-		BaseURL: app.Flags.B,
+		BaseURL: app.Flags.BaseURL,
 	})
 
 	if err != nil {

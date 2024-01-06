@@ -5,25 +5,28 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/store"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 func TestAddValue(t *testing.T) {
+	fileName := "testfile.txt"
 	testCases := []struct {
 		description string
 		filename    string
-		opts        store.AddValueOptions
+		opts        storeInterface.AddValueOptions
 		expectedURL string
 		expectedErr error
 	}{
 		{
 			description: "Add valid value",
-			filename:    "testfile.txt",
-			opts: store.AddValueOptions{
+			filename:    fileName,
+			opts: storeInterface.AddValueOptions{
 				Original: "https://example.com",
 				Short:    "abc",
 				BaseURL:  "https://short.ly",
@@ -33,14 +36,14 @@ func TestAddValue(t *testing.T) {
 		},
 		{
 			description: "Add value with empty Original",
-			filename:    "testfile.txt",
-			opts: store.AddValueOptions{
+			filename:    fileName,
+			opts: storeInterface.AddValueOptions{
 				Original: "",
 				Short:    "def",
 				BaseURL:  "https://short.ly",
 			},
 			expectedURL: "",
-			expectedErr: errors.New("original URL cannot be empty"),
+			expectedErr: failure.ErrEmptyOrigURL,
 		},
 	}
 
@@ -62,6 +65,8 @@ func TestAddValue(t *testing.T) {
 			}
 		})
 	}
+
+	os.Remove(fileName)
 }
 
 func TestGetValue(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"github.com/kupriyanovkk/shortener/internal/config"
 )
 
+// GetID process requests for getting original URL
 func GetID(w http.ResponseWriter, r *http.Request, app *config.App) {
 	id := r.URL.String()
 	origURL, err := app.Store.GetOriginalURL(r.Context(), id[1:])

@@ -7,15 +7,19 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgerrcode"
+	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/store"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 	"github.com/lib/pq"
 )
 
+// Store structure
 type Store struct {
-	db store.DatabaseConnection
+	db storeInterface.DatabaseConnection
 }
 
+// Bootstrap function create table shortener and
+// set unique index for 'original' field.
 func (s Store) Bootstrap(ctx context.Context) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -39,9 +43,10 @@ func (s Store) Bootstrap(ctx context.Context) error {
 	return tx.Commit()
 }
 
+// FindOriginalURL using for search original URL by short.
 func (s Store) FindOriginalURL(ctx context.Context, short string) (models.URL, error) {
 	var (
-		original   string
+		original  string
 		isDeleted bool
 	)
 	row := s.db.QueryRowContext(ctx, `SELECT original, is_deleted FROM shortener WHERE short = $1`, short)
@@ -53,12 +58,14 @@ func (s Store) FindOriginalURL(ctx context.Context, short string) (models.URL, e
 	}, err
 }
 
+// FindShortURL using for search short URL by original.
 func (s Store) FindShortURL(ctx context.Context, original string) (shortURL string, err error) {
 	row := s.db.QueryRowContext(ctx, `SELECT short FROM shortener WHERE original = $1`, original)
 	err = row.Scan(&shortURL)
 	return
 }
 
+// InsertURL inserts new URL into a table.
 func (s Store) InsertURL(ctx context.Context, short, original, userID string) error {
 	_, err := s.db.ExecContext(ctx, `
 			INSERT INTO shortener
@@ -70,13 +77,14 @@ func (s Store) InsertURL(ctx context.Context, short, original, userID string) er
 	if err != nil {
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			err = store.ErrConflict
+			err = failure.ErrConflict
 		}
 	}
 
 	return err
 }
 
+// GetOriginalURL using for search original URL by short.
 func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error) {
 	URL, err := s.FindOriginalURL(ctx, short)
 
@@ -87,14 +95,15 @@ func (s Store) GetOriginalURL(ctx context.Context, short string) (string, error)
 	return URL.Original, err
 }
 
-func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string, error) {
+// AddValue adding new URL into database.
+func (s Store) AddValue(ctx context.Context, opts storeInterface.AddValueOptions) (string, error) {
 	if opts.Original == "" {
-		return "", errors.New("original URL cannot be empty")
+		return "", failure.ErrEmptyOrigURL
 	}
 
 	err := s.InsertURL(ctx, opts.Short, opts.Original, opts.UserID)
 
-	if err != nil && errors.Is(err, store.ErrConflict) {
+	if err != nil && errors.Is(err, failure.ErrConflict) {
 		short, _ := s.FindShortURL(ctx, opts.Original)
 		result := fmt.Sprintf("%s/%s", opts.BaseURL, short)
 
@@ -104,7 +113,8 @@ func (s Store) AddValue(ctx context.Context, opts store.AddValueOptions) (string
 	return fmt.Sprintf("%s/%s", opts.BaseURL, opts.Short), nil
 }
 
-func (s Store) GetUserURLs(ctx context.Context, opts store.GetUserURLsOptions) ([]models.UserURL, error) {
+// GetUserURLs returning all URLs by particular user.
+func (s Store) GetUserURLs(ctx context.Context, opts storeInterface.GetUserURLsOptions) ([]models.UserURL, error) {
 	limit := 100
 	result := make([]models.UserURL, 0, limit)
 
@@ -136,7 +146,8 @@ func (s Store) GetUserURLs(ctx context.Context, opts store.GetUserURLsOptions) (
 	return result, nil
 }
 
-func (s Store) DeleteURLs(ctx context.Context, opts []store.DeletedURLs) error {
+// DeleteURLs marked URLs as deleted.
+func (s Store) DeleteURLs(ctx context.Context, opts []storeInterface.DeletedURLs) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -146,7 +157,7 @@ func (s Store) DeleteURLs(ctx context.Context, opts []store.DeletedURLs) error {
 
 	for _, o := range opts {
 		for _, u := range o.URLs {
-			_, err := s.db.ExecContext(ctx, `
+			_, err := tx.ExecContext(ctx, `
 			UPDATE shortener SET is_deleted = TRUE
 				WHERE short = $1 AND user_id = $2
 		`, u, o.UserID)
@@ -161,12 +172,14 @@ func (s Store) DeleteURLs(ctx context.Context, opts []store.DeletedURLs) error {
 	return tx.Commit()
 }
 
+// Ping checks database connection.
 func (s Store) Ping() error {
 	err := s.db.Ping()
 	return err
 }
 
-func NewStore(dbDSN string) store.Store {
+// NewStore return Store for working with DB
+func NewStore(dbDSN string) storeInterface.Store {
 	db, err := sql.Open("postgres", dbDSN)
 	if err != nil {
 		panic(err)

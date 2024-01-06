@@ -8,6 +8,8 @@ import (
 const urlAlphabet = "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict"
 const maxLen = len(urlAlphabet)
 
+// GetRandomStr return random string particular size.
+// Contains latin letters, numbers and dash.
 func GetRandomStr(size int) (string, error) {
 	if size < 0 {
 		return "", errors.New("size must be positive int")

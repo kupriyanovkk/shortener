@@ -2,12 +2,12 @@ package db
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/store"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
 func TestAddValue(t *testing.T) {
@@ -49,11 +49,11 @@ func TestAddValue(t *testing.T) {
 			original: "https://example.com",
 			user:     "123",
 			dbExpectation: func(short, original, user string) {
-				mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(store.ErrConflict)
+				mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(failure.ErrConflict)
 				mock.ExpectQuery("SELECT short FROM shortener").WithArgs(original).WillReturnRows(sqlmock.NewRows([]string{"short"}).AddRow(short))
 			},
 			expectedURL: "https://example.com/example",
-			expectedErr: store.ErrConflict,
+			expectedErr: failure.ErrConflict,
 		},
 		{
 			name:          "AddValue with FileWriterStorage",
@@ -79,11 +79,11 @@ func TestAddValue(t *testing.T) {
 			original: "https://example.com",
 			user:     "123",
 			dbExpectation: func(short, original, user string) {
-				mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(store.ErrConflict)
+				mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(failure.ErrConflict)
 				mock.ExpectQuery("SELECT short FROM shortener").WithArgs(original).WillReturnRows(sqlmock.NewRows([]string{"short"}).AddRow(short))
 			},
 			expectedURL: "https://example.com/example",
-			expectedErr: store.ErrConflict,
+			expectedErr: failure.ErrConflict,
 		},
 		{
 			name:          "AddValue with an empty original URL",
@@ -92,7 +92,7 @@ func TestAddValue(t *testing.T) {
 			original:      "",
 			dbExpectation: func(short, original, user string) {},
 			expectedURL:   "",
-			expectedErr:   errors.New("original URL cannot be empty"),
+			expectedErr:   failure.ErrEmptyOrigURL,
 		},
 	}
 
@@ -100,7 +100,7 @@ func TestAddValue(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.dbExpectation(tc.short, tc.original, tc.user)
 
-			url, err := storage.AddValue(context.Background(), store.AddValueOptions{
+			url, err := storage.AddValue(context.Background(), storeInterface.AddValueOptions{
 				Original: tc.original,
 				BaseURL:  "https://example.com",
 				Short:    tc.short,
@@ -138,7 +138,7 @@ func TestSaveURL(t *testing.T) {
 	}
 
 	conflictExpectation := func(short, original, user string) {
-		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(store.ErrConflict)
+		mock.ExpectExec("INSERT INTO shortener").WithArgs(short, original, user, false).WillReturnError(failure.ErrConflict)
 	}
 
 	testCases := []struct {
@@ -163,7 +163,7 @@ func TestSaveURL(t *testing.T) {
 			original:    "https://example.com",
 			user:        "123",
 			expectation: conflictExpectation,
-			expectedErr: store.ErrConflict,
+			expectedErr: failure.ErrConflict,
 		},
 	}
 
@@ -197,7 +197,7 @@ func TestGetUserURLs(t *testing.T) {
 
 	userID := "testUserID"
 	baseURL := "http://example.com"
-	opts := store.GetUserURLsOptions{
+	opts := storeInterface.GetUserURLsOptions{
 		UserID:  userID,
 		BaseURL: baseURL,
 	}

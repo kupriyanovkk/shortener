@@ -9,15 +9,17 @@ import (
 
 	"github.com/kupriyanovkk/shortener/internal/config"
 	"github.com/kupriyanovkk/shortener/internal/contextkey"
+	"github.com/kupriyanovkk/shortener/internal/failure"
 	"github.com/kupriyanovkk/shortener/internal/generator"
 	"github.com/kupriyanovkk/shortener/internal/models"
-	"github.com/kupriyanovkk/shortener/internal/store"
+	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
 )
 
+// PostAPIShortenBatch process requests for shorten URLs by batches.
 func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, app *config.App) {
 	var req []models.BatchRequest
 	var result []models.BatchResponse
-	baseURL := app.Flags.B
+	baseURL := app.Flags.BaseURL
 	dec := json.NewDecoder(r.Body)
 	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
 
@@ -39,7 +41,7 @@ func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, app *config.App
 		}
 
 		id, _ := generator.GetRandomStr(10)
-		short, saveErr := app.Store.AddValue(r.Context(), store.AddValueOptions{
+		short, saveErr := app.Store.AddValue(r.Context(), storeInterface.AddValueOptions{
 			Original: parsedURL.String(),
 			BaseURL:  baseURL,
 			Short:    id,
@@ -49,7 +51,7 @@ func PostAPIShortenBatch(w http.ResponseWriter, r *http.Request, app *config.App
 			CorrelationID: v.CorrelationID,
 			ShortURL:      short,
 		})
-		if errors.Is(saveErr, store.ErrConflict) {
+		if errors.Is(saveErr, failure.ErrConflict) {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
