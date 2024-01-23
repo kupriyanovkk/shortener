@@ -81,6 +81,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
+// GetAnalyzers returns a slice of *analysis.Analyzer containing static analyzers
+//
+// Returns []*analysis.Analyzer.
 func GetAnalyzers() []*analysis.Analyzer {
 	// standard static analyzers from package golang.org/x/tools/go/analysis/passes
 	analyzers := []*analysis.Analyzer{
