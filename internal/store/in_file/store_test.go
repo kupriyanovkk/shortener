@@ -196,3 +196,22 @@ func compareStringMaps(a, b map[string]models.URL) bool {
 
 	return true
 }
+
+func TestDeleteURLs(t *testing.T) {
+	s := Store{
+		values: map[string]models.URL{
+			"short1": {Short: "short1", Original: "original1", UserID: "user1", DeletedFlag: false},
+			"short2": {Short: "short2", Original: "original2", UserID: "user2", DeletedFlag: false},
+		},
+	}
+
+	deletedURLs := []storeInterface.DeletedURLs{
+		{UserID: "user1", URLs: []string{"short1"}},
+		{UserID: "user2", URLs: []string{"short2"}},
+	}
+
+	err := s.DeleteURLs(context.Background(), deletedURLs)
+	if err != nil {
+		t.Errorf("DeleteURLs returned an error: %v", err)
+	}
+}

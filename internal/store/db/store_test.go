@@ -241,3 +241,95 @@ func TestGetUserURLs(t *testing.T) {
 		t.Errorf("Unfulfilled expectations: %v", err)
 	}
 }
+
+func TestFindOriginalURL(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	s := Store{db: db}
+
+	cases := []struct {
+		short       string
+		expectedURL models.URL
+		expectedErr error
+	}{
+		{
+			short: "example_short",
+			expectedURL: models.URL{
+				Original:    "example_original",
+				DeletedFlag: false,
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, c := range cases {
+		mock.ExpectQuery("SELECT original, is_deleted FROM shortener WHERE short = ?").
+			WithArgs(c.short).
+			WillReturnRows(sqlmock.NewRows([]string{"original", "is_deleted"}).AddRow(c.expectedURL.Original, c.expectedURL.DeletedFlag))
+
+		url, err := s.FindOriginalURL(context.Background(), c.short)
+		if err != c.expectedErr {
+			t.Errorf("expected error %v, but got %v", c.expectedErr, err)
+		}
+		if url != c.expectedURL {
+			t.Errorf("expected URL %+v, but got %+v", c.expectedURL, url)
+		}
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestDeleteURLs(t *testing.T) {
+	// Test case for deleting a single URL
+	t.Run("DeleteSingleURL", func(t *testing.T) {
+		db, mock, _ := sqlmock.New()
+		defer db.Close()
+		s := Store{db: db}
+
+		opts := []storeInterface.DeletedURLs{
+			{
+				URLs:   []string{"example1.com"},
+				UserID: "user1",
+			},
+		}
+
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE shortener SET is_deleted = TRUE").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		err := s.DeleteURLs(context.Background(), opts)
+		if err != nil {
+			t.Errorf("Failed to delete single URL: %v", err)
+		}
+	})
+
+	// Test case for deleting multiple URLs
+	t.Run("DeleteMultipleURLs", func(t *testing.T) {
+		db, mock, _ := sqlmock.New()
+		defer db.Close()
+		s := Store{db: db}
+
+		opts := []storeInterface.DeletedURLs{
+			{
+				URLs:   []string{"example2.com", "example3.com"},
+				UserID: "user2",
+			},
+		}
+
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE shortener").WithArgs("example2.com", "user2").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec("UPDATE shortener").WithArgs("example3.com", "user2").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		err := s.DeleteURLs(context.Background(), opts)
+		if err != nil {
+			t.Errorf("Failed to delete multiple URLs: %v", err)
+		}
+	})
+}
