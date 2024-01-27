@@ -12,6 +12,7 @@ import (
 	infile "github.com/kupriyanovkk/shortener/internal/store/in_file"
 	inmemory "github.com/kupriyanovkk/shortener/internal/store/in_memory"
 	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 // Start it function witch init all API handlers,
@@ -76,8 +77,26 @@ func Start() {
 
 	router.Mount("/debug", middleware.Profiler())
 
-	err := http.ListenAndServe(flags.ServerAddress, router)
-	if err != nil {
-		panic(err)
+	if flags.EnableHTTPS {
+		manager := &autocert.Manager{
+			Cache:      autocert.DirCache("assets"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist("localhost"),
+		}
+		server := &http.Server{
+			Addr:      flags.ServerAddress,
+			Handler:   router,
+			TLSConfig: manager.TLSConfig(),
+		}
+
+		err := server.ListenAndServeTLS("", "")
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err := http.ListenAndServe(flags.ServerAddress, router)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
