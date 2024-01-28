@@ -1,6 +1,7 @@
 package app
 
 import (
+	"flag"
 	"net/http"
 
 	"github.com/go-chi/chi/middleware"
@@ -19,7 +20,7 @@ import (
 // and init Storage.
 func Start() {
 	router := chi.NewRouter()
-	flags := config.ParseFlags()
+	flags := config.ParseFlags(flag.NewFlagSet("flags", flag.ExitOnError))
 
 	var Store storeInterface.Store
 	if flags.DatabaseDSN != "" {
