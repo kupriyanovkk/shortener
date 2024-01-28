@@ -88,6 +88,13 @@ func ParseFlags(flag *flag.FlagSet) ConfigFlags {
 		parsedFlags.EnableHTTPS = envEnableHTTPS == "true"
 	}
 
+	if parsedFlags.ServerAddress == "" {
+		parsedFlags.ServerAddress = "localhost:8080"
+	}
+	if parsedFlags.BaseURL == "" {
+		parsedFlags.BaseURL = "http://localhost:8080"
+	}
+
 	return parsedFlags
 }
 
