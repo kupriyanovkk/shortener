@@ -52,7 +52,7 @@ func TestGzip(t *testing.T) {
 
 	t.Run("sends gzip", func(t *testing.T) {
 		s := infile.NewStore(f.FileStoragePath)
-		env := &config.App{Flags: f, Store: s}
+		env := &config.App{Flags: &f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			handlers.PostAPIShorten(w, r, env)
 		}))
@@ -74,7 +74,7 @@ func TestGzip(t *testing.T) {
 
 	t.Run("accepts gzip", func(t *testing.T) {
 		s := infile.NewStore(f.FileStoragePath)
-		env := &config.App{Flags: f, Store: s}
+		env := &config.App{Flags: &f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			handlers.PostAPIShorten(w, r, env)
 		}))
@@ -100,7 +100,7 @@ func TestGzip(t *testing.T) {
 
 	t.Run("no gzip", func(t *testing.T) {
 		s := infile.NewStore(f.FileStoragePath)
-		env := &config.App{Flags: f, Store: s}
+		env := &config.App{Flags: &f, Store: s}
 		handler := Gzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			handlers.PostAPIShorten(w, r, env)
 		}))

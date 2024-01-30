@@ -1,74 +1,71 @@
 package config
 
 import (
-	"flag"
-	"log"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestParseFlags(t *testing.T) {
-	tests := []struct {
-		name           string
-		envVariables   map[string]string
-		configFile     string
-		expectedOutput ConfigFlags
-	}{
-		{
-			name:         "JSONConfigFile",
-			envVariables: map[string]string{},
-			configFile:   "./test_config_file.json",
-			expectedOutput: ConfigFlags{
-				ServerAddress:   "json_server_address",
-				BaseURL:         "json_base_url",
-				FileStoragePath: "json_file_storage_path",
-				DatabaseDSN:     "json_database_dsn",
-				EnableHTTPS:     false,
-			},
-		},
-		{
-			name: "EnvironmentVariables",
-			envVariables: map[string]string{
-				"SERVER_ADDRESS":    "test_server_address",
-				"BASE_URL":          "test_base_url",
-				"FILE_STORAGE_PATH": "test_file_storage_path",
-				"DATABASE_DSN":      "test_database_dsn",
-				"ENABLE_HTTPS":      "true",
-			},
-			configFile: "./test_config_file.json",
-			expectedOutput: ConfigFlags{
-				ServerAddress:   "test_server_address",
-				BaseURL:         "test_base_url",
-				FileStoragePath: "test_file_storage_path",
-				DatabaseDSN:     "test_database_dsn",
-				EnableHTTPS:     true,
-			},
-		},
+func TestParseFlags_Args(t *testing.T) {
+	os.Clearenv()
+
+	flags, _ := ParseFlags(os.Args[0], []string{"-a", "test_server_address", "-b", "test_base_url", "-f", "test_file_storage_path", "-d", "test_database_dsn", "-s", "true"})
+
+	assert.Equal(t, "test_server_address", flags.ServerAddress, "ServerAddress not parsed correctly")
+	assert.Equal(t, "test_base_url", flags.BaseURL, "BaseURL not parsed correctly")
+	assert.Equal(t, "test_file_storage_path", flags.FileStoragePath, "FileStoragePath not parsed correctly")
+	assert.Equal(t, "test_database_dsn", flags.DatabaseDSN, "DatabaseDSN not parsed correctly")
+	assert.Equal(t, true, flags.EnableHTTPS, "EnableHTTPS not parsed correctly")
+}
+
+func TestParseFlags_JSON(t *testing.T) {
+	os.Clearenv()
+
+	configData := `{"server_address":"json_server_address","base_url":"json_base_url","file_storage_path":"json_file_storage_path","database_dsn":"json_database_dsn","enable_https":false}`
+	configFile := "./test_config_file.json"
+	err := os.WriteFile(configFile, []byte(configData), 0644)
+	if err != nil {
+		t.Error(err)
 	}
+	defer os.Remove(configFile)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Set environment variables
-			for key, value := range tt.envVariables {
-				os.Setenv(key, value)
-			}
+	os.Setenv("CONFIG", "./test_config_file.json")
 
-			// Create and write to config file
-			if tt.configFile != "" {
-				configData := `{"server_address":"json_server_address","base_url":"json_base_url","file_storage_path":"json_file_storage_path","database_dsn":"json_database_dsn","enable_https":false}`
-				err := os.WriteFile(tt.configFile, []byte(configData), 0644)
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer os.Remove(tt.configFile)
-				os.Setenv("CONFIG", tt.configFile)
-			}
+	flags, _ := ParseFlags(os.Args[0], []string{})
 
-			flagSet := flag.NewFlagSet("test", flag.ExitOnError)
-			parsedFlags := ParseFlags(flagSet)
-			if parsedFlags != tt.expectedOutput {
-				t.Errorf("Expected %v, but got %v", tt.expectedOutput, parsedFlags)
-			}
-		})
+	assert.Equal(t, "json_server_address", flags.ServerAddress, "ServerAddress not parsed correctly")
+	assert.Equal(t, "json_base_url", flags.BaseURL, "BaseURL not parsed correctly")
+	assert.Equal(t, "json_file_storage_path", flags.FileStoragePath, "FileStoragePath not parsed correctly")
+	assert.Equal(t, "json_database_dsn", flags.DatabaseDSN, "DatabaseDSN not parsed correctly")
+	assert.Equal(t, false, flags.EnableHTTPS, "EnableHTTPS not parsed correctly")
+	assert.Equal(t, configFile, flags.ConfigFile, "ConfigFile not parsed correctly")
+}
+
+func TestParseFlags_ENV(t *testing.T) {
+	os.Clearenv()
+
+	configData := `{"server_address":"json_server_address","base_url":"json_base_url","file_storage_path":"json_file_storage_path","database_dsn":"json_database_dsn","enable_https":false}`
+	configFile := "./test_config_file.json"
+	err := os.WriteFile(configFile, []byte(configData), 0644)
+	if err != nil {
+		t.Error(err)
 	}
+	defer os.Remove(configFile)
+
+	os.Setenv("CONFIG", "./test_config_file.json")
+
+	os.Setenv("SERVER_ADDRESS", "env_server_address")
+	os.Setenv("BASE_URL", "env_base_url")
+	os.Setenv("FILE_STORAGE_PATH", "env_file_storage_path")
+	os.Setenv("DATABASE_DSN", "env_database_dsn")
+	os.Setenv("ENABLE_HTTPS", "true")
+
+	flags, _ := ParseFlags(os.Args[0], []string{"-a", "test_server_address", "-b", "test_base_url", "-f", "test_file_storage_path", "-d", "test_database_dsn", "-s", "true"})
+
+	assert.Equal(t, "env_server_address", flags.ServerAddress, "ServerAddress not parsed correctly")
+	assert.Equal(t, "env_base_url", flags.BaseURL, "BaseURL not parsed correctly")
+	assert.Equal(t, "env_file_storage_path", flags.FileStoragePath, "FileStoragePath not parsed correctly")
+	assert.Equal(t, "env_database_dsn", flags.DatabaseDSN, "DatabaseDSN not parsed correctly")
+	assert.Equal(t, true, flags.EnableHTTPS, "EnableHTTPS not parsed correctly")
 }
