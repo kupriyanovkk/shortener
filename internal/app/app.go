@@ -133,14 +133,12 @@ func startServer(flags *config.ConfigFlags, router http.Handler) {
 		}
 		server.TLSConfig = manager.TLSConfig()
 
-		err := server.ListenAndServeTLS("", "")
-		if err != nil {
-			panic(err)
+		if err := server.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
+			log.Fatalf("HTTP server ListenAndServeTLS: %v", err)
 		}
 	} else {
-		err := server.ListenAndServe()
-		if err != nil {
-			panic(err)
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("HTTP server ListenAndServe: %v", err)
 		}
 	}
 
