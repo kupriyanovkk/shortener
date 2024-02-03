@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
@@ -106,41 +108,50 @@ func setupAPIRoutes(router *chi.Mux, app *config.App) {
 }
 
 func startServer(flags *config.ConfigFlags, router http.Handler) {
+	shutdownTimeout := 5 * time.Second
+
 	server := &http.Server{
 		Addr:    flags.ServerAddress,
 		Handler: router,
 	}
 
-	idleConnsClosed := make(chan struct{})
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer cancel()
 
 	go func() {
-		<-sigint
+		defer wg.Done()
 
-		if err := server.Shutdown(context.Background()); err != nil {
-			log.Printf("HTTP server Shutdown: %v", err)
+		if flags.EnableHTTPS {
+			manager := &autocert.Manager{
+				Cache:      autocert.DirCache("assets"),
+				Prompt:     autocert.AcceptTOS,
+				HostPolicy: autocert.HostWhitelist("localhost"),
+			}
+			server.TLSConfig = manager.TLSConfig()
+
+			if err := server.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
+				log.Fatalf("HTTP server ListenAndServeTLS: %v", err)
+			}
+		} else {
+			if err := server.ListenAndServe(); err != http.ErrServerClosed {
+				log.Fatalf("HTTP server ListenAndServe: %v", err)
+			}
 		}
-
-		close(idleConnsClosed)
 	}()
 
-	if flags.EnableHTTPS {
-		manager := &autocert.Manager{
-			Cache:      autocert.DirCache("assets"),
-			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist("localhost"),
-		}
-		server.TLSConfig = manager.TLSConfig()
+	<-ctx.Done()
 
-		if err := server.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
-			log.Fatalf("HTTP server ListenAndServeTLS: %v", err)
-		}
-	} else {
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("HTTP server ListenAndServe: %v", err)
-		}
+	cancel()
+
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancelShutdown()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("HTTP server Shutdown: %v", err)
 	}
 
-	<-idleConnsClosed
+	wg.Wait()
 }
