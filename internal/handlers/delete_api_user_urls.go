@@ -67,6 +67,7 @@ func FlushDeletedURLs(app *config.App, ctx context.Context) {
 			URLs = nil
 		case <-ctx.Done():
 			close(app.URLChan)
+			return
 		}
 	}
 }
