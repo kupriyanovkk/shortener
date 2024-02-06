@@ -45,7 +45,7 @@ func DeleteAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) 
 }
 
 // FlushDeletedURLs reading URLChan and processing URLs.
-func FlushDeletedURLs(app *config.App) {
+func FlushDeletedURLs(app *config.App, ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Second)
 
 	var URLs []storeInterface.DeletedURLs
@@ -65,6 +65,8 @@ func FlushDeletedURLs(app *config.App) {
 				continue
 			}
 			URLs = nil
+		case <-ctx.Done():
+			close(app.URLChan)
 		}
 	}
 }

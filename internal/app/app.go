@@ -39,12 +39,10 @@ func Start() {
 		URLChan: make(chan storeInterface.DeletedURLs, 10),
 	}
 
-	go handlers.FlushDeletedURLs(app)
-
 	setupMiddlewares(router)
 	setupRoutes(router, app)
 
-	startServer(flags, router)
+	runServer(flags, router, app)
 }
 
 // getStore returns a store based on the provided flags.
@@ -107,7 +105,7 @@ func setupAPIRoutes(router *chi.Mux, app *config.App) {
 	})
 }
 
-func startServer(flags *config.ConfigFlags, router http.Handler) {
+func runServer(flags *config.ConfigFlags, router http.Handler, app *config.App) {
 	shutdownTimeout := 5 * time.Second
 
 	server := &http.Server{
@@ -116,10 +114,16 @@ func startServer(flags *config.ConfigFlags, router http.Handler) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer cancel()
+
+	go func() {
+		defer wg.Done()
+
+		handlers.FlushDeletedURLs(app, ctx)
+	}()
 
 	go func() {
 		defer wg.Done()
