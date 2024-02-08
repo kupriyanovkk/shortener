@@ -1,7 +1,10 @@
 package config
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
+	"log"
 	"os"
 
 	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
@@ -9,49 +12,93 @@ import (
 
 // ConfigFlags contains flags for app.
 type ConfigFlags struct {
-	ServerAddress   string
-	BaseURL         string
-	FileStoragePath string
-	DatabaseDSN     string
+	ServerAddress   string `json:"server_address"`
+	BaseURL         string `json:"base_url"`
+	FileStoragePath string `json:"file_storage_path"`
+	DatabaseDSN     string `json:"database_dsn"`
+	EnableHTTPS     bool   `json:"enable_https"`
+	ConfigFile      string
 }
 
-// ParseFlags using for parsing and getting environment variables.
-func ParseFlags() ConfigFlags {
-	var runAddress string
-	var baseURL string
-	var fileStoragePath string
-	var databaseDSN string
+// ParseFlags parses and retrieves environment variables.
+func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
+	flags := flag.NewFlagSet(progname, flag.ContinueOnError)
+	var buf bytes.Buffer
+	flags.SetOutput(&buf)
 
-	flag.StringVar(&runAddress, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(&baseURL, "b", "http://localhost:8080", "the address of the resulting shortened URL")
-	flag.StringVar(&fileStoragePath, "f", "/tmp/short-url-db.json", "the full name of the file where the data is saved in JSON")
-	flag.StringVar(&databaseDSN, "d", "", "the address for DB connection")
-	flag.Parse()
+	var (
+		serverAddress   string
+		baseURL         string
+		fileStoragePath string
+		databaseDSN     string
+		enableHTTPS     bool
+		configFile      string
+	)
 
-	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
-		runAddress = envRunAddr
-	}
-	if envBaseAddr := os.Getenv("BASE_URL"); envBaseAddr != "" {
-		baseURL = envBaseAddr
-	}
-	if envFileStoragePath := os.Getenv("FILE_STORAGE_PATH"); envFileStoragePath != "" {
-		fileStoragePath = envFileStoragePath
-	}
-	if envDatabaseDNS := os.Getenv("DATABASE_DSN"); envDatabaseDNS != "" {
-		databaseDSN = envDatabaseDNS
+	parsedFlags := ConfigFlags{}
+
+	flags.StringVar(&serverAddress, "a", "", "address and port to run server")
+	flags.StringVar(&baseURL, "b", "", "the address of the resulting shortened URL")
+	flags.StringVar(&fileStoragePath, "f", "", "the full name of the file where the data is saved in JSON")
+	flags.StringVar(&databaseDSN, "d", "", "the address for DB connection")
+	flags.BoolVar(&enableHTTPS, "s", false, "enable HTTPS support")
+	flags.StringVar(&configFile, "c", "", "path to config file")
+	flags.StringVar(&configFile, "config", "", "path to config file")
+
+	err := flags.Parse(args)
+	if err != nil {
+		return nil, err
 	}
 
-	return ConfigFlags{
-		ServerAddress:   runAddress,
-		BaseURL:         baseURL,
-		FileStoragePath: fileStoragePath,
-		DatabaseDSN:     databaseDSN,
+	configFromEnv := os.Getenv("CONFIG")
+	if configFromEnv != "" {
+		configFile = configFromEnv
 	}
+	parsedFlags.ConfigFile = configFile
+	parsedFlags.EnableHTTPS = enableHTTPS
+
+	if configFile != "" {
+		configData, err := os.ReadFile(configFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = json.Unmarshal(configData, &parsedFlags)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	updateIfNotEmpty := func(value, envValue string, field *string) {
+		if envValue != "" {
+			*field = envValue
+		} else if value != "" {
+			*field = value
+		}
+	}
+
+	updateIfNotEmpty(serverAddress, os.Getenv("SERVER_ADDRESS"), &parsedFlags.ServerAddress)
+	updateIfNotEmpty(baseURL, os.Getenv("BASE_URL"), &parsedFlags.BaseURL)
+	updateIfNotEmpty(fileStoragePath, os.Getenv("FILE_STORAGE_PATH"), &parsedFlags.FileStoragePath)
+	updateIfNotEmpty(databaseDSN, os.Getenv("DATABASE_DSN"), &parsedFlags.DatabaseDSN)
+
+	if envEnableHTTPS := os.Getenv("ENABLE_HTTPS"); envEnableHTTPS != "" {
+		parsedFlags.EnableHTTPS = envEnableHTTPS == "true"
+	}
+
+	if parsedFlags.ServerAddress == "" {
+		parsedFlags.ServerAddress = "localhost:8080"
+	}
+	if parsedFlags.BaseURL == "" {
+		parsedFlags.BaseURL = "http://localhost:8080"
+	}
+
+	return &parsedFlags, nil
 }
 
 // App structure contains flags, store and URLchan.
 type App struct {
-	Flags   ConfigFlags
+	Flags   *ConfigFlags
 	Store   storeInterface.Store
 	URLChan chan storeInterface.DeletedURLs
 }

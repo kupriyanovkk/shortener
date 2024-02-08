@@ -29,7 +29,7 @@ func TestPostRoot(t *testing.T) {
 	t.Run("Valid POST Request", func(t *testing.T) {
 		body := []byte("https://example.com")
 		s := infile.NewStore(f.FileStoragePath)
-		env := &config.App{Flags: f, Store: s}
+		env := &config.App{Flags: &f, Store: s}
 		req, err := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 		if err != nil {
 			t.Fatal(err)
@@ -47,7 +47,7 @@ func TestPostRoot(t *testing.T) {
 	t.Run("Invalid POST Request", func(t *testing.T) {
 		body := []byte("invalid-url")
 		s := infile.NewStore(f.FileStoragePath)
-		env := &config.App{Flags: f, Store: s}
+		env := &config.App{Flags: &f, Store: s}
 		req, err := http.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 		if err != nil {
 			t.Fatal(err)
@@ -67,7 +67,7 @@ func TestGetID(t *testing.T) {
 	t.Run("Valid GET Request", func(t *testing.T) {
 		id := "abc123"
 		s := infile.NewStore(f.FileStoragePath)
-		env := &config.App{Flags: f, Store: s}
+		env := &config.App{Flags: &f, Store: s}
 		s.AddValue(context.Background(), storeInterface.AddValueOptions{
 			Short:    id,
 			Original: "http://example.com",
@@ -90,7 +90,7 @@ func TestGetID(t *testing.T) {
 
 	t.Run("Invalid GET Request (Not Found)", func(t *testing.T) {
 		s := infile.NewStore(f.FileStoragePath)
-		env := &config.App{Flags: f, Store: s}
+		env := &config.App{Flags: &f, Store: s}
 		req, err := http.NewRequest(http.MethodGet, "/nonexistent", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -108,7 +108,7 @@ func TestGetID(t *testing.T) {
 
 func TestPostApiShorten(t *testing.T) {
 	s := infile.NewStore(f.FileStoragePath)
-	env := &config.App{Flags: f, Store: s}
+	env := &config.App{Flags: &f, Store: s}
 	body := []byte(`{"url":"http://example.com/"}`)
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
 
@@ -133,7 +133,7 @@ func TestPostApiShorten(t *testing.T) {
 
 func TestPostApiShortenBatch(t *testing.T) {
 	s := infile.NewStore(f.FileStoragePath)
-	env := &config.App{Flags: f, Store: s}
+	env := &config.App{Flags: &f, Store: s}
 
 	testCases := []struct {
 		Name         string
@@ -194,5 +194,26 @@ func TestPostApiShortenBatch(t *testing.T) {
 				t.Errorf("Test case '%s' failed. Expected status code %d, but got %d", tc.Name, tc.ExpectedCode, rec.Code)
 			}
 		})
+	}
+}
+
+func TestGetPing(t *testing.T) {
+	s := infile.NewStore(f.FileStoragePath)
+
+	req, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		GetPing(w, r, &config.App{Store: s})
+	})
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
 	}
 }
