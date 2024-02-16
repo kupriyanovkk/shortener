@@ -36,3 +36,9 @@ type UserURL struct {
 	Short    string `json:"short_url"`
 	Original string `json:"original_url"`
 }
+
+// InternalStats is a structure for internal statistics
+type InternalStats struct {
+	URLs  int `json:"urls"`
+	Users int `json:"users"`
+}

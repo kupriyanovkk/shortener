@@ -102,6 +102,12 @@ func setupAPIRoutes(router *chi.Mux, app *config.App) {
 				})
 			})
 		})
+
+		r.Route("/internal/stats", func(r chi.Router) {
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				handlers.GetInternalStats(w, r, app)
+			})
+		})
 	})
 }
 

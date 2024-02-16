@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -332,4 +333,28 @@ func TestDeleteURLs(t *testing.T) {
 			t.Errorf("Failed to delete multiple URLs: %v", err)
 		}
 	})
+}
+
+func TestGetInternalStats(t *testing.T) {
+	ctx := context.Background()
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock database: %v", err)
+	}
+	defer db.Close()
+
+	store := Store{db: db}
+
+	mock.ExpectQuery("SELECT COUNT(*) FROM shortener").WillReturnError(errors.New("database error"))
+	_, err = store.GetInternalStats(ctx)
+	if err == nil {
+		t.Errorf("Expected an error, but got nil")
+	}
+
+	mock.ExpectQuery("SELECT COUNT(*) FROM shortener").WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
+	mock.ExpectQuery("SELECT user_id, COUNT(user_id) FROM shortener GROUP BY user_id").WillReturnError(errors.New("database error"))
+	_, err = store.GetInternalStats(ctx)
+	if err == nil {
+		t.Errorf("Expected an error, but got nil")
+	}
 }

@@ -141,6 +141,22 @@ func (s Store) DeleteURLs(ctx context.Context, opts []storeInterface.DeletedURLs
 	return nil
 }
 
+// GetInternalStats returning internal statistics
+func (s Store) GetInternalStats(ctx context.Context) (models.InternalStats, error) {
+	uniqueUserIDs := make([]string, 0)
+
+	for _, value := range s.values {
+		if !contains(uniqueUserIDs, value.UserID) {
+			uniqueUserIDs = append(uniqueUserIDs, value.UserID)
+		}
+	}
+
+	return models.InternalStats{
+		URLs:  len(s.values),
+		Users: len(uniqueUserIDs),
+	}, nil
+}
+
 // NewStore return Store for working with file.
 func NewStore(filename string) storeInterface.Store {
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -163,4 +179,14 @@ func NewStore(filename string) storeInterface.Store {
 		file:   file,
 		writer: bufio.NewWriter(file),
 	}
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
 }

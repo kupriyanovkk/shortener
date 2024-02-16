@@ -178,6 +178,27 @@ func (s Store) Ping() error {
 	return err
 }
 
+// GetInternalStats returning internal statistics
+func (s Store) GetInternalStats(ctx context.Context) (models.InternalStats, error) {
+	var (
+		urlCount  int
+		userCount int
+	)
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM shortener`).Scan(&urlCount)
+	if err != nil {
+		return models.InternalStats{}, err
+	}
+	err = s.db.QueryRowContext(ctx, `SELECT user_id, COUNT(user_id) FROM shortener GROUP BY user_id`).Scan(&userCount)
+	if err != nil {
+		return models.InternalStats{}, err
+	}
+
+	return models.InternalStats{
+		URLs:  urlCount,
+		Users: userCount,
+	}, nil
+}
+
 // NewStore return Store for working with DB
 func NewStore(dbDSN string) storeInterface.Store {
 	db, err := sql.Open("postgres", dbDSN)
