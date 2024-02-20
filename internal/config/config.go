@@ -19,6 +19,7 @@ type ConfigFlags struct {
 	EnableHTTPS     bool   `json:"enable_https"`
 	TrustedSubnet   string `json:"trusted_subnet"`
 	ConfigFile      string
+	EnableGRPC      bool
 }
 
 // ParseFlags parses and retrieves environment variables.
@@ -35,6 +36,7 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 		enableHTTPS     bool
 		configFile      string
 		trustedSubnet   string
+		enableGRPC      bool
 	)
 
 	parsedFlags := ConfigFlags{}
@@ -47,6 +49,7 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 	flags.StringVar(&configFile, "c", "", "path to config file")
 	flags.StringVar(&configFile, "config", "", "path to config file")
 	flags.StringVar(&trustedSubnet, "t", "", "trusted subnet")
+	flags.BoolVar(&enableGRPC, "g", false, "enable gRPC support")
 
 	err := flags.Parse(args)
 	if err != nil {

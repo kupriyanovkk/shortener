@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package store;
+
+option go_package = "github.com/kupriyanovkk/shortener/internal/grpc/proto";
+
+import "google/protobuf/empty.proto";
+
+message GenerateShortURLRequest {
+  string url = 1;
+}
+
+message GenerateShortURLResponse {
+  string result = 1;
+  string error = 2;
+}
+
+message GetOriginalURLByShortRequest {
+  string short = 1;
+}
+
+message GetOriginalURLByShortResponse {
+  string full_url = 1;
+  string error = 2;
+}
+
+message URL {
+  string original = 1;
+  string short = 2;
+}
+
+message GetAPIUserURLsRequest {
+  string user_id = 1;
+}
+
+message GetAPIUserURLsResponse {
+  repeated URL urls = 1;
+  string error = 2;
+}
+
+message GetInternalStatsResponse {
+  int32 urls = 1;
+  int32 users = 2;
+}
+
+message DeleteAPIUserURLsRequest {
+  repeated string urls = 1;
+}
+
+message DeleteAPIUserURLsResponse {
+  string error = 1;
+}
+
+service Shortener {
+  rpc GetShortURL(GenerateShortURLRequest) returns (GenerateShortURLResponse);
+  rpc GetOriginalURLByShort(GetOriginalURLByShortRequest) returns (GetOriginalURLByShortResponse);
+  rpc GetAPIUserURLs(GetAPIUserURLsRequest) returns (GetAPIUserURLsResponse);
+  rpc GetInternalStats(google.protobuf.Empty) returns (GetInternalStatsResponse);
+  rpc DeleteAPIUserURLs(DeleteAPIUserURLsRequest) returns (DeleteAPIUserURLsResponse);
+}

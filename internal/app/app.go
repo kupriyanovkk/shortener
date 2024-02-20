@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/grpc"
 	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/middlewares"
 	"github.com/kupriyanovkk/shortener/internal/store/db"
@@ -134,7 +135,17 @@ func runServer(flags *config.ConfigFlags, router http.Handler, app *config.App) 
 	go func() {
 		defer wg.Done()
 
-		if flags.EnableHTTPS {
+		if flags.EnableGRPC {
+			gRPCServer, err := grpc.NewShortenerGRPCServer(app)
+
+			if err != nil {
+				log.Fatalf("NewShortenerGRPCServer return error: %v", err)
+			}
+
+			if err := gRPCServer.Run(ctx); err != nil {
+				log.Fatalf("gRPC error: %v", err)
+			}
+		} else if flags.EnableHTTPS {
 			manager := &autocert.Manager{
 				Cache:      autocert.DirCache("assets"),
 				Prompt:     autocert.AcceptTOS,
