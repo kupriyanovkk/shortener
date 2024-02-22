@@ -19,8 +19,8 @@ import (
 //
 // ctx context.Context, request *pb.GenerateShortURLRequest
 // *pb.GenerateShortURLResponse, error
-func (s *ShortenerServer) GetShortURL(ctx context.Context, request *pb.GenerateShortURLRequest) (*pb.GenerateShortURLResponse, error) {
-	var response pb.GenerateShortURLResponse
+func (s *ShortenerServer) GetShortURL(ctx context.Context, request *pb.GetShortURLRequest) (*pb.GetShortURLResponse, error) {
+	var response pb.GetShortURLResponse
 
 	baseURL := s.app.Flags.BaseURL
 	userID := userid.Get(ctx)

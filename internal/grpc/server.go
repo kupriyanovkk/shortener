@@ -2,7 +2,9 @@ package grpc
 
 import (
 	"context"
+	"log"
 	"net"
+	"sync"
 
 	"github.com/kupriyanovkk/shortener/internal/config"
 	pb "github.com/kupriyanovkk/shortener/internal/grpc/proto"
@@ -26,19 +28,25 @@ func NewShortenerGRPCServer(app *config.App) (s *ShortenerServer, err error) {
 	return s, err
 }
 
-// Run runs the ShortenerServer.
-//
-// It takes a context and a config flags as parameters.
-// Returns an error.
-func (s *ShortenerServer) Run(ctx context.Context) error {
-	listen, err := net.Listen("tcp", s.app.Flags.ServerAddress)
+// Run starts the gRPC server and listens for incoming connections.
+func (s *ShortenerServer) Run(ctx context.Context, wg *sync.WaitGroup) {
+	listener, err := net.Listen("tcp", s.app.Flags.GRPCServerAddress)
 	if err != nil {
-		return err
+		log.Fatalf("failed to listen: %v", err)
 	}
 
-	gRPCServer := grpc.NewServer()
+	server := grpc.NewServer()
+	pb.RegisterShortenerServer(server, s)
 
-	pb.RegisterShortenerServer(gRPCServer, s)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-	return gRPCServer.Serve(listen)
+		<-ctx.Done()
+		server.GracefulStop()
+	}()
+
+	if err := server.Serve(listener); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }

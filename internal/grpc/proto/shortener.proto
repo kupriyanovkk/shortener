@@ -6,11 +6,11 @@ option go_package = "github.com/kupriyanovkk/shortener/internal/grpc/proto";
 
 import "google/protobuf/empty.proto";
 
-message GenerateShortURLRequest {
+message GetShortURLRequest {
   string url = 1;
 }
 
-message GenerateShortURLResponse {
+message GetShortURLResponse {
   string result = 1;
   string error = 2;
 }
@@ -52,7 +52,7 @@ message DeleteAPIUserURLsResponse {
 }
 
 service Shortener {
-  rpc GetShortURL(GenerateShortURLRequest) returns (GenerateShortURLResponse);
+  rpc GetShortURL(GetShortURLRequest) returns (GetShortURLResponse);
   rpc GetOriginalURLByShort(GetOriginalURLByShortRequest) returns (GetOriginalURLByShortResponse);
   rpc GetAPIUserURLs(GetAPIUserURLsRequest) returns (GetAPIUserURLsResponse);
   rpc GetInternalStats(google.protobuf.Empty) returns (GetInternalStatsResponse);

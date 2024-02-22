@@ -31,7 +31,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ShortenerClient interface {
-	GetShortURL(ctx context.Context, in *GenerateShortURLRequest, opts ...grpc.CallOption) (*GenerateShortURLResponse, error)
+	GetShortURL(ctx context.Context, in *GetShortURLRequest, opts ...grpc.CallOption) (*GetShortURLResponse, error)
 	GetOriginalURLByShort(ctx context.Context, in *GetOriginalURLByShortRequest, opts ...grpc.CallOption) (*GetOriginalURLByShortResponse, error)
 	GetAPIUserURLs(ctx context.Context, in *GetAPIUserURLsRequest, opts ...grpc.CallOption) (*GetAPIUserURLsResponse, error)
 	GetInternalStats(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetInternalStatsResponse, error)
@@ -46,8 +46,8 @@ func NewShortenerClient(cc grpc.ClientConnInterface) ShortenerClient {
 	return &shortenerClient{cc}
 }
 
-func (c *shortenerClient) GetShortURL(ctx context.Context, in *GenerateShortURLRequest, opts ...grpc.CallOption) (*GenerateShortURLResponse, error) {
-	out := new(GenerateShortURLResponse)
+func (c *shortenerClient) GetShortURL(ctx context.Context, in *GetShortURLRequest, opts ...grpc.CallOption) (*GetShortURLResponse, error) {
+	out := new(GetShortURLResponse)
 	err := c.cc.Invoke(ctx, Shortener_GetShortURL_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (c *shortenerClient) DeleteAPIUserURLs(ctx context.Context, in *DeleteAPIUs
 // All implementations must embed UnimplementedShortenerServer
 // for forward compatibility
 type ShortenerServer interface {
-	GetShortURL(context.Context, *GenerateShortURLRequest) (*GenerateShortURLResponse, error)
+	GetShortURL(context.Context, *GetShortURLRequest) (*GetShortURLResponse, error)
 	GetOriginalURLByShort(context.Context, *GetOriginalURLByShortRequest) (*GetOriginalURLByShortResponse, error)
 	GetAPIUserURLs(context.Context, *GetAPIUserURLsRequest) (*GetAPIUserURLsResponse, error)
 	GetInternalStats(context.Context, *emptypb.Empty) (*GetInternalStatsResponse, error)
@@ -107,7 +107,7 @@ type ShortenerServer interface {
 type UnimplementedShortenerServer struct {
 }
 
-func (UnimplementedShortenerServer) GetShortURL(context.Context, *GenerateShortURLRequest) (*GenerateShortURLResponse, error) {
+func (UnimplementedShortenerServer) GetShortURL(context.Context, *GetShortURLRequest) (*GetShortURLResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetShortURL not implemented")
 }
 func (UnimplementedShortenerServer) GetOriginalURLByShort(context.Context, *GetOriginalURLByShortRequest) (*GetOriginalURLByShortResponse, error) {
@@ -136,7 +136,7 @@ func RegisterShortenerServer(s grpc.ServiceRegistrar, srv ShortenerServer) {
 }
 
 func _Shortener_GetShortURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GenerateShortURLRequest)
+	in := new(GetShortURLRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func _Shortener_GetShortURL_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: Shortener_GetShortURL_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ShortenerServer).GetShortURL(ctx, req.(*GenerateShortURLRequest))
+		return srv.(ShortenerServer).GetShortURL(ctx, req.(*GetShortURLRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

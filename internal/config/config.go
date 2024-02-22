@@ -12,14 +12,14 @@ import (
 
 // ConfigFlags contains flags for app.
 type ConfigFlags struct {
-	ServerAddress   string `json:"server_address"`
-	BaseURL         string `json:"base_url"`
-	FileStoragePath string `json:"file_storage_path"`
-	DatabaseDSN     string `json:"database_dsn"`
-	EnableHTTPS     bool   `json:"enable_https"`
-	TrustedSubnet   string `json:"trusted_subnet"`
-	ConfigFile      string
-	EnableGRPC      bool
+	ServerAddress     string `json:"server_address"`
+	BaseURL           string `json:"base_url"`
+	FileStoragePath   string `json:"file_storage_path"`
+	DatabaseDSN       string `json:"database_dsn"`
+	EnableHTTPS       bool   `json:"enable_https"`
+	TrustedSubnet     string `json:"trusted_subnet"`
+	ConfigFile        string
+	GRPCServerAddress string
 }
 
 // ParseFlags parses and retrieves environment variables.
@@ -36,7 +36,7 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 		enableHTTPS     bool
 		configFile      string
 		trustedSubnet   string
-		enableGRPC      bool
+		grpcServerAddr  string
 	)
 
 	parsedFlags := ConfigFlags{}
@@ -49,7 +49,7 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 	flags.StringVar(&configFile, "c", "", "path to config file")
 	flags.StringVar(&configFile, "config", "", "path to config file")
 	flags.StringVar(&trustedSubnet, "t", "", "trusted subnet")
-	flags.BoolVar(&enableGRPC, "g", false, "enable gRPC support")
+	flags.StringVar(&grpcServerAddr, "g", ":3200", "address and port to run gRPC server")
 
 	err := flags.Parse(args)
 	if err != nil {
@@ -62,6 +62,7 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 	}
 	parsedFlags.ConfigFile = configFile
 	parsedFlags.EnableHTTPS = enableHTTPS
+	parsedFlags.GRPCServerAddress = grpcServerAddr
 
 	if configFile != "" {
 		configData, err := os.ReadFile(configFile)
