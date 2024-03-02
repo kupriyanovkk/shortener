@@ -3,17 +3,16 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/kupriyanovkk/shortener/internal/config"
-	"github.com/kupriyanovkk/shortener/internal/contextkey"
 	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
+	"github.com/kupriyanovkk/shortener/internal/userid"
 )
 
 // GetAPIUserURLs processes requests for getting user URLs
 func GetAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
-	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
+	userID := userid.Get(r.Context())
 	_, err := r.Cookie("UserID")
 
 	if err != nil {

@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/kupriyanovkk/shortener/internal/config"
-	"github.com/kupriyanovkk/shortener/internal/contextkey"
 	storeInterface "github.com/kupriyanovkk/shortener/internal/store/interface"
+	"github.com/kupriyanovkk/shortener/internal/userid"
 )
 
 // DeleteAPIUserURLs processes requests for deleting user URLs.
 func DeleteAPIUserURLs(w http.ResponseWriter, r *http.Request, app *config.App) {
 	var URLs []string
 	dec := json.NewDecoder(r.Body)
-	userID := fmt.Sprint(r.Context().Value(contextkey.ContextUserKey))
+	userID := userid.Get(r.Context())
 	_, err := r.Cookie("UserID")
 
 	if err != nil {

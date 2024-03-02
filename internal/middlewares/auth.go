@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/kupriyanovkk/shortener/internal/contextkey"
 	"github.com/kupriyanovkk/shortener/internal/encrypt"
 	"github.com/kupriyanovkk/shortener/internal/random"
+	"github.com/kupriyanovkk/shortener/internal/userid"
 )
 
 // Auth is middleware for checking user authorization.
@@ -39,7 +39,7 @@ func Auth(h http.Handler) http.Handler {
 			}
 		}
 
-		ctx := context.WithValue(r.Context(), contextkey.ContextUserKey, hex.EncodeToString(userID))
+		ctx := context.WithValue(r.Context(), userid.ContextUserKey, hex.EncodeToString(userID))
 		h.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

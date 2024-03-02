@@ -12,12 +12,14 @@ import (
 
 // ConfigFlags contains flags for app.
 type ConfigFlags struct {
-	ServerAddress   string `json:"server_address"`
-	BaseURL         string `json:"base_url"`
-	FileStoragePath string `json:"file_storage_path"`
-	DatabaseDSN     string `json:"database_dsn"`
-	EnableHTTPS     bool   `json:"enable_https"`
-	ConfigFile      string
+	ServerAddress     string `json:"server_address"`
+	BaseURL           string `json:"base_url"`
+	FileStoragePath   string `json:"file_storage_path"`
+	DatabaseDSN       string `json:"database_dsn"`
+	EnableHTTPS       bool   `json:"enable_https"`
+	TrustedSubnet     string `json:"trusted_subnet"`
+	ConfigFile        string
+	GRPCServerAddress string
 }
 
 // ParseFlags parses and retrieves environment variables.
@@ -33,6 +35,8 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 		databaseDSN     string
 		enableHTTPS     bool
 		configFile      string
+		trustedSubnet   string
+		grpcServerAddr  string
 	)
 
 	parsedFlags := ConfigFlags{}
@@ -44,6 +48,8 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 	flags.BoolVar(&enableHTTPS, "s", false, "enable HTTPS support")
 	flags.StringVar(&configFile, "c", "", "path to config file")
 	flags.StringVar(&configFile, "config", "", "path to config file")
+	flags.StringVar(&trustedSubnet, "t", "", "trusted subnet")
+	flags.StringVar(&grpcServerAddr, "g", ":3200", "address and port to run gRPC server")
 
 	err := flags.Parse(args)
 	if err != nil {
@@ -56,6 +62,7 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 	}
 	parsedFlags.ConfigFile = configFile
 	parsedFlags.EnableHTTPS = enableHTTPS
+	parsedFlags.GRPCServerAddress = grpcServerAddr
 
 	if configFile != "" {
 		configData, err := os.ReadFile(configFile)
@@ -81,6 +88,7 @@ func ParseFlags(progname string, args []string) (*ConfigFlags, error) {
 	updateIfNotEmpty(baseURL, os.Getenv("BASE_URL"), &parsedFlags.BaseURL)
 	updateIfNotEmpty(fileStoragePath, os.Getenv("FILE_STORAGE_PATH"), &parsedFlags.FileStoragePath)
 	updateIfNotEmpty(databaseDSN, os.Getenv("DATABASE_DSN"), &parsedFlags.DatabaseDSN)
+	updateIfNotEmpty(trustedSubnet, os.Getenv("TRUSTED_SUBNET"), &parsedFlags.TrustedSubnet)
 
 	if envEnableHTTPS := os.Getenv("ENABLE_HTTPS"); envEnableHTTPS != "" {
 		parsedFlags.EnableHTTPS = envEnableHTTPS == "true"

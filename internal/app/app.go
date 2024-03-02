@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/kupriyanovkk/shortener/internal/config"
+	"github.com/kupriyanovkk/shortener/internal/grpc"
 	"github.com/kupriyanovkk/shortener/internal/handlers"
 	"github.com/kupriyanovkk/shortener/internal/middlewares"
 	"github.com/kupriyanovkk/shortener/internal/store/db"
@@ -102,6 +103,12 @@ func setupAPIRoutes(router *chi.Mux, app *config.App) {
 				})
 			})
 		})
+
+		r.Route("/internal/stats", func(r chi.Router) {
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				handlers.GetInternalStats(w, r, app)
+			})
+		})
 	})
 }
 
@@ -145,6 +152,21 @@ func runServer(flags *config.ConfigFlags, router http.Handler, app *config.App) 
 			}
 		}
 	}()
+
+	if flags.GRPCServerAddress != "" {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			gRPCServer, err := grpc.NewShortenerGRPCServer(app)
+			if err != nil {
+				log.Fatalf("NewShortenerGRPCServer return error: %v", err)
+			}
+
+			gRPCServer.Run(ctx, &wg)
+		}()
+	}
 
 	<-ctx.Done()
 

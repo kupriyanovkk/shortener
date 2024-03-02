@@ -14,6 +14,7 @@ type Store interface {
 	GetUserURLs(ctx context.Context, opts GetUserURLsOptions) ([]models.UserURL, error)
 	Ping() error
 	DeleteURLs(ctx context.Context, opts []DeletedURLs) error
+	GetInternalStats(ctx context.Context) (models.InternalStats, error)
 }
 
 // AddValueOptions is a structure for AddValue method params

@@ -215,3 +215,51 @@ func TestDeleteURLs(t *testing.T) {
 		t.Errorf("DeleteURLs returned an error: %v", err)
 	}
 }
+
+func TestStore_GetInternalStats(t *testing.T) {
+	fileName := "testfile.txt"
+	ctx := context.Background()
+	store := NewStore(fileName)
+
+	expectedStatsEmpty := models.InternalStats{
+		URLs:  0,
+		Users: 0,
+	}
+
+	expectedStatsNonEmpty := models.InternalStats{
+		URLs:  3,
+		Users: 2,
+	}
+
+	t.Run("EmptyValues", func(t *testing.T) {
+		stats, _ := store.GetInternalStats(context.Background())
+		if stats != expectedStatsEmpty {
+			t.Errorf("Expected %v, but got %v", expectedStatsEmpty, stats)
+		}
+	})
+
+	t.Run("NonEmptyValues", func(t *testing.T) {
+		store.AddValue(ctx, storeInterface.AddValueOptions{
+			Original: "original1",
+			Short:    "short1",
+			UserID:   "user1",
+		})
+		store.AddValue(ctx, storeInterface.AddValueOptions{
+			Original: "original2",
+			Short:    "short2",
+			UserID:   "user2",
+		})
+		store.AddValue(ctx, storeInterface.AddValueOptions{
+			Original: "original3",
+			Short:    "short3",
+			UserID:   "user2",
+		})
+
+		stats, _ := store.GetInternalStats(context.Background())
+		if stats != expectedStatsNonEmpty {
+			t.Errorf("Expected %v, but got %v", expectedStatsNonEmpty, stats)
+		}
+	})
+
+	os.Remove(fileName)
+}
